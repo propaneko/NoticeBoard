@@ -1,5 +1,5 @@
 {
-  "type": "content",
+  "type": "code",
   "modid": "noticeboard",
   "name": "Notice Board",
   "authors": [
@@ -8,6 +8,6 @@
   "description": "Notice board when you can post and read notices.",
   "version": "0.0.1",
   "dependencies": {
-    "game": "1.19.*"
+    "game": "1.19.8"
   }
 }
