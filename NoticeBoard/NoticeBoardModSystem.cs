@@ -1,4 +1,4 @@
-﻿using NoticeBoard.src;
+﻿using NoticeBoard.src.NoticeBoardBlock;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
@@ -8,9 +8,6 @@ namespace NoticeBoard
 {
     public class NoticeBoardModSystem : ModSystem
     {
-        ICoreClientAPI capi;
-        // Called on server and client
-        // Useful for registering block/entity classes on both sides
         public override void Start(ICoreAPI api)
         {
             base.Start(api);

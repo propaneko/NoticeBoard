@@ -3,11 +3,13 @@
 	"class": "NoticeBoardBlock",
 	"entityClass": "NoticeBoardBlockEntity",
 	"creativeinventory": {
-		"general": [
-			"*"
-		]
+		"general": [ "*-north" ]
 	},
 	"variantGroups": [
+		{
+			"code": "shape",
+			"states": [ "default", "active" ]
+		},
 		{
 			"code": "side",
 			"loadFromProperties": "abstract/horizontalorientation"
@@ -63,8 +65,52 @@
 			}
 		}
 	],
+	"selectionBoxByType": {
+		"*-north": {
+			"x1": 0.0,
+			"y1": 0.0,
+			"z1": 0.3,
+			"x2": 1.0,
+			"y2": 1.0,
+			"z2": 0.7 // North-facing selection box
+		},
+		"*-east": {
+			"x1": 0.3,
+			"y1": 0.0,
+			"z1": 0.0,
+			"x2": 0.7,
+			"y2": 1.0,
+			"z2": 1.0 // East-facing selection box
+		},
+		"*-south": {
+			"x1": 0.0,
+			"y1": 0.0,
+			"z1": 0.3,
+			"x2": 1.0,
+			"y2": 1.0,
+			"z2": 0.7 // North-facing selection box
+		},
+		"*-west": {
+			"x1": 0.3,
+			"y1": 0.0,
+			"z1": 0.0,
+			"x2": 0.7,
+			"y2": 1.0,
+			"z2": 1.0 // East-facing selection box
+		}
+	},
 	"maxstacksize": 1,
 	"drawtype": "json",
+	"blockmaterial": "Wood",
+	"replaceable": 600,
+	"resistance": 3,
+	"flammable": true,
+	"snowcoverage": true,
+	"combustibleprops": {
+		"burntemperature": 5, // Temperature at which the block ignites (0 means not flammable)
+		"burnduration": 15, // How long the block burns for (0 means it doesn't burn)
+		"smokelevel": 1 // Amount of smoke generated while burning
+	},
 	"sideopaque": {
 		"all": false
 	},
@@ -77,8 +123,13 @@
 	"sidesolid": {
 		"all": false
 	},
+	"heldTpIdleAnimation": "holdunderarm",
+	"heldTpUseAnimation": "twohandplaceblock",
+	"sounds": {
+		"walk": "game:player/buildhigh"
+	},
 	"shape": {
-		"base": "item/noticeboardactive",
+		"base": "item/noticeboard{shape}",
 		"rotateYByType": {
 			"*-north": 0,
 			"*-east": 270,
