@@ -35,7 +35,7 @@ namespace NoticeBoard.src.NoticeBoardBlock
             return base.OnBlockInteractStart(world, byPlayer, blockSel);
         }
 
-        public void ChangeBlockShape(IWorldAccessor world, BlockPos pos)
+        public void ChangeBlockShape(IWorldAccessor world, BlockPos pos, bool isActive)
         {
             Block currentBlock = world.BlockAccessor.GetBlock(pos);
             BlockEntity currentEntity = world.BlockAccessor.GetBlockEntity(pos);
@@ -45,7 +45,7 @@ namespace NoticeBoard.src.NoticeBoardBlock
             TreeAttribute blockEntityData = new TreeAttribute();
             currentEntity.ToTreeAttributes(blockEntityData);
 
-            if (currentBlock.Code.Path.Contains("default"))
+            if (isActive)
             {
                 // Get the block variant with the different shape
                 string[] splitPath = currentBlock.Code.Path.Split("-");
@@ -61,7 +61,7 @@ namespace NoticeBoard.src.NoticeBoardBlock
                     newEntity.MarkDirty(true);
                 }
             }
-            else if (currentBlock.Code.Path.Contains("active"))
+            else if (!isActive)
             {
                 // Get the other block variant
                 string[] splitPath = currentBlock.Code.Path.Split("-");
