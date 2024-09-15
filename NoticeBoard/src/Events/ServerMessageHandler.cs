@@ -47,7 +47,6 @@ namespace NoticeBoard.src.Events
                 NoticeBoardObject noticeBoard = db.GetBoardData(packet.BoardId);
                 string rpNickName = NoticeBoardModSystem.getSAPI().GetPlayerByUID(player.PlayerUID).GetModData("BASIC_NICKNAME", player.PlayerName);
 
-                foreach (IServerPlayer serverPlayer in NoticeBoardModSystem.getSAPI().World.AllOnlinePlayers)
                 {
                     player.SendMessage(proximityGroup, $"<strong>{rpNickName}</strong> {Lang.Get("noticeboard:new-notice-proximity-message")} ({noticeBoard.Pos})", EnumChatType.Notification);
                 }
