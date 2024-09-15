@@ -3,10 +3,11 @@
   "modid": "noticeboard",
   "name": "Notice Board",
   "authors": [
-    "@propaneko"
+    "propaneko"
   ],
-  "description": "Notice board when you can post and read notices.",
-  "version": "0.0.1",
+  "side": "universal",
+  "description": "Notice board where you can post and read players notices.",
+  "version": "0.1.0",
   "dependencies": {
     "game": "1.19.8"
   }

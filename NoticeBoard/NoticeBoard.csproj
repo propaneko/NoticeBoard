@@ -54,6 +54,13 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
   </Content>
   <None Remove="assets\noticeboard\lang\pl.json" />
+  <None Remove="assets\noticeboard\recipes\grid\noticeboardrecipe.json" />
+  <None Remove="assets\noticeboard\shapes\item\noticeboard0.json" />
+  <None Remove="assets\noticeboard\shapes\item\noticeboard1.json" />
+  <None Remove="assets\noticeboard\shapes\item\noticeboard2.json" />
+  <None Remove="assets\noticeboard\shapes\item\noticeboard3.json" />
+  <None Remove="assets\noticeboard\shapes\item\noticeboard4.json" />
+  <None Remove="assets\noticeboard\shapes\item\noticeboard5.json" />
   <Content Include="modinfo.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
   </Content>

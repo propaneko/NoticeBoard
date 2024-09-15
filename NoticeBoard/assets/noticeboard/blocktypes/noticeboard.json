@@ -3,12 +3,12 @@
 	"class": "NoticeBoardBlock",
 	"entityClass": "NoticeBoardBlockEntity",
 	"creativeinventory": {
-		"general": [ "*-north" ]
+		"general": [ "*0-north" ]
 	},
 	"variantGroups": [
 		{
-			"code": "shape",
-			"states": [ "default", "active" ]
+			"code": "messageCount",
+			"states": [ "0", "1", "2", "3", "4", "5", "6" ]
 		},
 		{
 			"code": "side",
@@ -123,13 +123,13 @@
 	"sidesolid": {
 		"all": false
 	},
-	"heldTpIdleAnimation": "holdunderarm",
+	"heldTpIdleAnimation": "holdbothhands",
 	"heldTpUseAnimation": "twohandplaceblock",
 	"sounds": {
 		"walk": "game:player/buildhigh"
 	},
 	"shape": {
-		"base": "item/noticeboard{shape}",
+		"base": "item/noticeboard{messageCount}",
 		"rotateYByType": {
 			"*-north": 0,
 			"*-east": 270,
@@ -140,22 +140,27 @@
 	"tpHandTransform": {
 		"translation": {
 			"x": 0,
-			"y": -0.5,
-			"z": -0.7
+			"y": -2,
+			"z": -1
 		},
 		"rotation": {
-			"x": 79,
-			"y": 9,
-			"z": -25
+			"x": 132,
+			"y": -5,
+			"z": -73
 		},
 		"scale": 0.48
 	},
 	"guiTransform": {
 		"translation": {
-			"x": -10,
-			"y": 5,
+			"x": 9,
+			"y": 7.5,
 			"z": 0
 		},
-		"scale": 0.56
+		"rotation": {
+			"x": -29,
+			"y": 147,
+			"z": 0
+		},
+		"scale": 0.4
 	}
 }

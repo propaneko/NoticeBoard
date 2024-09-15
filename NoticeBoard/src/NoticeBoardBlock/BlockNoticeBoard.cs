@@ -1,10 +1,10 @@
 ﻿using Vintagestory.API.Common;
-using Vintagestory.API.Client;    // For client-side interaction, if needed (e.g., custom block rendering).
 using Vintagestory.API.MathTools;
-using Vintagestory.API.Config;
 using Vintagestory.API.Datastructures;
+using NoticeBoard.src;
+using NoticeBoard.src.Packets;
 
-namespace NoticeBoard.src.NoticeBoardBlock
+namespace NoticeBoard
 {
     public class NoticeBoardBlock : Block
     {
@@ -14,28 +14,34 @@ namespace NoticeBoard.src.NoticeBoardBlock
         {
             BlockPos blockPos = blockSel.Position;
 
-            //ChangeBlockShape(world, blockPos);
-
             if (world.BlockAccessor.GetBlockEntity(blockPos) is NoticeBoardBlockEntity blockEntity)
             {
                 blockUniqueId = blockEntity.uniqueID;
-                //world.Logger.Debug("Unique ID of the block: " + blockUniqueId);
             }
 
             if (world.Side == EnumAppSide.Client)
             {
-                ICoreClientAPI capi = (byPlayer as IClientPlayer)?.Entity?.World?.Api as ICoreClientAPI;
-                if (capi != null)
+                PlayerCreateNoticeBoard sendPacket = new PlayerCreateNoticeBoard
                 {
-                    GuiDialogCustom myGui = new GuiDialogCustom("Custom GUI", blockUniqueId, capi);
-                    myGui.TryOpen();
-                }
+                    BoardId = blockUniqueId,
+                    Pos = blockPos.ToLocalPosition(NoticeBoardModSystem.getCAPI()).ToString(),
+                };
+
+                NoticeBoardModSystem.getCAPI().Network.GetChannel("noticeboard").SendPacket(sendPacket);
+
+                RequestAllMessages requestPacket = new RequestAllMessages
+                {
+                    BoardId = blockUniqueId,
+                    PlayerId = byPlayer.PlayerUID
+                };
+
+                NoticeBoardModSystem.getCAPI().Network.GetChannel("noticeboard").SendPacket(requestPacket);
             }
 
             return base.OnBlockInteractStart(world, byPlayer, blockSel);
         }
 
-        public void ChangeBlockShape(IWorldAccessor world, BlockPos pos, bool isActive)
+        public void ChangeBlockShape(IWorldAccessor world, BlockPos pos, int messageCount)
         {
             Block currentBlock = world.BlockAccessor.GetBlock(pos);
             BlockEntity currentEntity = world.BlockAccessor.GetBlockEntity(pos);
@@ -44,56 +50,36 @@ namespace NoticeBoard.src.NoticeBoardBlock
 
             TreeAttribute blockEntityData = new TreeAttribute();
             currentEntity.ToTreeAttributes(blockEntityData);
+           
+            string[] splitPath = currentBlock.Code.Path.Split("-");
+            Block newBlock = world.GetBlock(new AssetLocation("noticeboard", $"noticeboard-{messageCount}-{splitPath[splitPath.Length - 1]}"));
 
-            if (isActive)
+            // Replace the block with the new variant
+            world.BlockAccessor.SetBlock(newBlock.BlockId, pos);
+            BlockEntity newEntity = world.BlockAccessor.GetBlockEntity(pos);
+            if (newEntity != null)
             {
-                // Get the block variant with the different shape
-                string[] splitPath = currentBlock.Code.Path.Split("-");
-                Block newBlock = world.GetBlock(new AssetLocation("noticeboard", $"noticeboard-active-{splitPath[splitPath.Length - 1]}"));
-
-                // Replace the block with the new variant
-                world.BlockAccessor.SetBlock(newBlock.BlockId, pos);
-                BlockEntity newEntity = world.BlockAccessor.GetBlockEntity(pos);
-                if (newEntity != null)
-                {
-                    // Restore the entity data to the new BlockEntity
-                    newEntity.FromTreeAttributes(blockEntityData, world);
-                    newEntity.MarkDirty(true);
-                }
-            }
-            else if (!isActive)
-            {
-                // Get the other block variant
-                string[] splitPath = currentBlock.Code.Path.Split("-");
-                Block newBlock = world.GetBlock(new AssetLocation("noticeboard", $"noticeboard-default-{splitPath[splitPath.Length - 1]}"));
-
-                // Replace the block with the original variant
-                world.BlockAccessor.SetBlock(newBlock.BlockId, pos);
-                BlockEntity newEntity = world.BlockAccessor.GetBlockEntity(pos);
-                if (newEntity != null)
-                {
-                    // Restore the entity data to the new BlockEntity
-                    newEntity.FromTreeAttributes(blockEntityData, world);
-                    newEntity.MarkDirty(true);
-                }
+                // Restore the entity data to the new BlockEntity
+                newEntity.FromTreeAttributes(blockEntityData, world);
+                newEntity.MarkDirty(true);
             }
         }
-
-        public override void OnBlockPlaced(IWorldAccessor world, BlockPos blockPos, ItemStack byItemStack = null)
-        {
-            
-       
-            base.OnBlockPlaced(world, blockPos, byItemStack);
-        }
-
         public override void OnBlockBroken(IWorldAccessor world, BlockPos pos, IPlayer byPlayer, float dropQuantityMultiplier = 1)
         {
-
-
             if (world.BlockAccessor.GetBlockEntity(pos) is NoticeBoardBlockEntity blockEntity)
             {
                 blockUniqueId = blockEntity.uniqueID;
                 world.Logger.Debug("Destroyed the block with ID: " + blockUniqueId);
+            }
+
+            if (world.Side == EnumAppSide.Client)
+            {
+                PlayerDestroyNoticeBoard sendPacket = new PlayerDestroyNoticeBoard
+                {
+                    BoardId = blockUniqueId,
+                };
+
+                NoticeBoardModSystem.getCAPI().Network.GetChannel("noticeboard").SendPacket(sendPacket);
             }
 
             // Your custom code goes here, for example:
@@ -103,7 +89,7 @@ namespace NoticeBoard.src.NoticeBoardBlock
             // Example: Drop a custom item when the block is destroyed
             base.OnBlockBroken(world, pos, byPlayer, dropQuantityMultiplier);
             if (!world.Side.IsServer()) return; // Ensure only the server handles dropping items
-            //ItemStack drop = new ItemStack(world.GetItem(new AssetLocation("noticeboard:block-noticeboard-north")));
+            //ItemStack drop = new ItemStack(world.GetBlock(new AssetLocation("noticeboard:noticeboard-default-north")));
             //world.SpawnItemEntity(drop, pos.ToVec3d());
         }
     }

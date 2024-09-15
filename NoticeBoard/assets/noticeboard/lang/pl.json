@@ -1,3 +1,11 @@
 {
-  "block-noticeboard-*": "Tablica Ogłoszeń"
+  "block-noticeboard-*": "Tablica Ogłoszeń",
+
+  "main-window-title-bar": "Tablica Ogłoszeń",
+  "main-window-add-notice": "Dodaj ogłoszenie",
+
+  "add-notice-window-title": "Wpisz swoje ogłoszenie",
+  "add-notice-window-pin-button": "Przypnij",
+
+  "new-notice-proximity-message": "przypiął/ła nową wiadomość na tablicy ogłoszeń z koordynatami"
 }
