@@ -1,0 +1,11 @@
+{
+    "block-noticeboard-*": "Доска Объявлений",
+
+    "main-window-title-bar": "Доска Объявлений",
+    "main-window-add-notice-button": "Добавить Объявление",
+
+    "add-notice-window-title": "Напишите ваше объявление.",
+    "add-notice-window-pin-button": "Прикрепить",
+
+    "new-notice-proximity-message": "оставил новое объявление на доске по координатам:"
+}

@@ -63,18 +63,21 @@ public class NoticeBoardMainWindowGui : GuiDialog
     public override void OnGuiOpened()
     {
 
-        int insetWidth = 900;
+        int insetWidth = 575;
         int insetHeight = 300;
         int insetDepth = 3;
-        int rowHeight = 100;
+        int rowHeight = 80;
 
-        ElementBounds buttonBounds = ElementBounds.Fixed(-136, 40, 100, 30); // Button position and size
         // Auto-sized dialog at the center of the screen
-        ElementBounds dialogBounds = ElementStdBounds.AutosizedMainDialog.WithAlignment(EnumDialogArea.CenterMiddle);
+        ElementBounds dialogBounds = ElementStdBounds.AutosizedMainDialog.WithFixedWidth(860).WithAlignment(EnumDialogArea.CenterTop).WithFixedOffset(0, 40);
 
         // Bounds of main inset for scrolling content in the GUI
         ElementBounds insetBounds = ElementBounds.Fixed(0, GuiStyle.TitleBarHeight, insetWidth, insetHeight);
+        ElementBounds insetBounds1 = ElementBounds.Fixed(0, GuiStyle.TitleBarHeight, insetWidth, insetHeight);
+
         ElementBounds scrollbarBounds = insetBounds.RightCopy().WithFixedWidth(20);
+
+        ElementBounds textBounds = ElementBounds.Fixed(0, 40, 300, 100);
 
         // Create child elements bounds for within the inset
         ElementBounds clipBounds = insetBounds.ForkContainingChild(GuiStyle.HalfPadding, GuiStyle.HalfPadding, GuiStyle.HalfPadding, GuiStyle.HalfPadding);
@@ -82,45 +85,46 @@ public class NoticeBoardMainWindowGui : GuiDialog
         ElementBounds containerRowBounds = ElementBounds.Fixed(0, 0, insetWidth, rowHeight);
         ElementBounds containerRowBoundsButton = ElementBounds.Fixed(870, 0, 20, 20);
 
+        ElementBounds buttonBounds = insetBounds.RightCopy().WithFixedWidth(120).WithFixedHeight(40).WithFixedOffset(36, 0); // Button position and size
 
         // Dialog background bounds
         ElementBounds bgBounds = ElementBounds.Fill
             .WithFixedPadding(GuiStyle.ElementToDialogPadding)
             .WithSizing(ElementSizing.FitToChildren)
-            .WithChildren(insetBounds, scrollbarBounds);
+            .WithChildren(insetBounds, scrollbarBounds, buttonBounds);
 
         // Create the dialog
         SingleComposer = capi.Gui.CreateCompo("demoScrollGui", dialogBounds)
             .AddShadedDialogBG(bgBounds)
             .AddDialogTitleBar(Lang.Get("noticeboard:main-window-title-bar"), OnTitleBarClose)
-            .AddSmallButton(Lang.Get("noticeboard:main-window-add-notice-button"), () => AddMessage(), buttonBounds)
-            .BeginChildElements()
-                .AddInset(insetBounds, insetDepth)
+            .AddInset(insetBounds, insetDepth)
                 .BeginClip(clipBounds)
                     .AddContainer(containerBounds, "scroll-content")
                 .EndClip()
                 .AddVerticalScrollbar(OnNewScrollbarValue, scrollbarBounds, "scrollbar")
-            .EndChildElements();
+            .AddSmallButton(Lang.Get("noticeboard:main-window-add-notice-button"), () => AddMessage(), buttonBounds);
+                
+            
 
 
         GuiElementContainer scrollArea = SingleComposer.GetContainer("scroll-content");
         scrollArea.Add(new GuiElementStaticText(capi, "", EnumTextOrientation.Center, containerRowBounds, CairoFont.WhiteDetailText()));
-
         if (messages != null && messages.Count > 0)
         {
             for (int i = 0; i < messages.Count; i++)
             {
                 string message = messages[i].Text;
                 int id = messages[i].Id;
-                //double height = CalculateTextHeight(message, insetWidth);
-                //containerRowBounds.WithFixedHeight(height);
+                double height = CalculateTextHeight(message, insetWidth);
+                containerRowBounds.WithFixedHeight(rowHeight);
                 //totalHeight +=  height + 16;
-                containerRowBounds.WithFixedWidth(850);
+                containerRowBounds.WithFixedWidth(500);
                 containerRowBounds.WithFixedPadding(0 ,8);
 
 
-                containerRowBoundsButton.WithFixedPosition(860, containerRowBounds.fixedY + 8);
+                containerRowBoundsButton = containerRowBounds.RightCopy().WithFixedPosition(530, containerRowBounds.fixedY + 8).WithFixedHeight(10).WithFixedWidth(30);
                 containerRowBoundsButton.WithFixedMargin(0, 8);
+                //containerRowBoundsButton.WithFixedMargin(0, 8);
 
                 GuiElementStaticText textElement = new GuiElementStaticText(capi, message, EnumTextOrientation.Left, containerRowBounds, CairoFont.WhiteDetailText());
 

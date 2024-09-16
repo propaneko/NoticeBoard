@@ -23,17 +23,48 @@ public class NoticeBoardTextInputWindowGui : GuiDialog
     {
 
         base.OnGuiOpened();
-        ElementBounds dialogBounds = ElementBounds.Fixed(0, 0, 500, 120).WithAlignment(EnumDialogArea.CenterBottom);
 
-        ElementBounds inputBounds = ElementBounds.Fixed(16, 40, 468, 70);
-        ElementBounds buttonBounds = ElementBounds.Fixed(-106, 40, 100, 30);
+        int insetWidth = 550;
+        int insetHeight = 75;
+        int insetDepth = 3;
+        int rowHeight = 100;
 
-        SingleComposer = capi.Gui.CreateCompo("messageinputdialog", dialogBounds)
+        // Auto-sized dialog at the center of the screen
+        ElementBounds dialogBounds = ElementStdBounds.AutosizedMainDialog.WithAlignment(EnumDialogArea.CenterBottom).WithFixedOffset(0, -120);
+
+        // Bounds of main inset for scrolling content in the GUI
+        ElementBounds insetBounds = ElementBounds.Fixed(0, GuiStyle.TitleBarHeight, insetWidth, insetHeight);
+        ElementBounds insetBounds1 = ElementBounds.Fixed(0, GuiStyle.TitleBarHeight, insetWidth, insetHeight);
+
+        ElementBounds scrollbarBounds = insetBounds.RightCopy().WithFixedWidth(20);
+
+        ElementBounds textBounds = ElementBounds.Fixed(0, 40, 300, 100);
+
+        // Create child elements bounds for within the inset
+        ElementBounds clipBounds = insetBounds.ForkContainingChild(GuiStyle.HalfPadding, GuiStyle.HalfPadding, GuiStyle.HalfPadding, GuiStyle.HalfPadding);
+        ElementBounds containerBounds = insetBounds.ForkContainingChild(GuiStyle.HalfPadding, GuiStyle.HalfPadding, GuiStyle.HalfPadding, GuiStyle.HalfPadding);
+        ElementBounds containerRowBounds = ElementBounds.Fixed(0, 0, insetWidth, rowHeight);
+        ElementBounds containerRowBoundsButton = ElementBounds.Fixed(870, 0, 20, 20);
+
+        ElementBounds buttonBounds = insetBounds.RightCopy().WithFixedWidth(120).WithFixedHeight(40).WithFixedOffset(17, 0); // Button position and size
+
+        // Dialog background bounds
+        ElementBounds bgBounds = ElementBounds.Fill
+            .WithFixedPadding(GuiStyle.ElementToDialogPadding)
+            .WithSizing(ElementSizing.FitToChildren)
+            .WithChildren(insetBounds, scrollbarBounds, buttonBounds);
+
+        // Create the dialog
+        SingleComposer = capi.Gui.CreateCompo("addNoticeGui", dialogBounds)
+            .AddShadedDialogBG(bgBounds)
             .AddDialogTitleBar(Lang.Get("noticeboard:add-notice-window-title"), OnTitleBarClose)
-            .AddShadedDialogBG(ElementBounds.Fill)
-            .AddTextArea(inputBounds, OnTextChanged, CairoFont.WhiteDetailText(), "messageInput")
             .AddSmallButton(Lang.Get("noticeboard:add-notice-window-pin-button"), OnSendButtonClicked, buttonBounds)
-            .Compose();
+            .AddInset(insetBounds, insetDepth)
+                .BeginClip(clipBounds)
+                 .AddTextArea(containerBounds, OnTextChanged, CairoFont.WhiteDetailText(), "messageInput")
+                .EndClip();
+
+        SingleComposer.Compose();
     }
 
     private void OnTextChanged(string text)
@@ -51,6 +82,15 @@ public class NoticeBoardTextInputWindowGui : GuiDialog
             // Update the TextArea with the limited text
             SingleComposer.GetTextArea("messageInput").SetValue(limitedText);
         }
+
+        if (text.Length > 292)
+        {
+            string limitedText = text.Substring(0, 292);
+            SingleComposer.GetTextArea("messageInput").SetValue(limitedText);
+        }
+
+        NoticeBoardModSystem.getSAPI().Logger.Debug(text.Length.ToString());
+
         // Optional: Handle text input changes, if needed
     }
 

@@ -137,6 +137,23 @@
 			"*-west": 90
 		}
 	},
+	"textures": {
+		"aged-h": { "base": "block/bark/aged-h" },
+		"agedbark": { "base": "block/bark/agedbark" },
+		"ageddebarked": { "base": "block/debarked/ageddebarked" },
+		"agedp-h": { "base": "block/debarked/agedp-h" },
+		"agedp-h96x64": { "base": "block/debarked/agedp-h96x64" },
+		"paperlabel": { "base": "block/notice/paperlabel" },
+		"paperlabel1": { "base": "block/notice/paperlabel1" },
+		"paperlabel2": { "base": "block/notice/paperlabel2" },
+		"paperlabel3": { "base": "block/notice/paperlabel3" },
+		"paperlabel4": { "base": "block/notice/paperlabel4" },
+		"paperlabelsample": { "base": "block/notice/paperlabelsample" },
+		"paperlabelsample5": { "base": "block/notice/paperlabelsample5" },
+		"brass": { "base": "block/plate/brass" },
+		"iron": { "base": "block/plate/iron" },
+		"steel": { "base": "block/plate/steel" }
+	},
 	"tpHandTransform": {
 		"translation": {
 			"x": 0,
