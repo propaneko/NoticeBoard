@@ -66,7 +66,7 @@ public class NoticeBoardMainWindowGui : GuiDialog
         int insetWidth = 900;
         int insetHeight = 300;
         int insetDepth = 3;
-        int rowHeight = 60;
+        int rowHeight = 100;
 
         ElementBounds buttonBounds = ElementBounds.Fixed(-136, 40, 100, 30); // Button position and size
         // Auto-sized dialog at the center of the screen
@@ -123,7 +123,6 @@ public class NoticeBoardMainWindowGui : GuiDialog
                 containerRowBoundsButton.WithFixedMargin(0, 8);
 
                 GuiElementStaticText textElement = new GuiElementStaticText(capi, message, EnumTextOrientation.Left, containerRowBounds, CairoFont.WhiteDetailText());
-                textElement.AutoFontSize();
 
                 scrollArea.Add(textElement);
                 scrollArea.Add(new GuiElementTextButton(capi, "X", CairoFont.WhiteDetailText(), CairoFont.WhiteDetailText(), () => RemoveMessage(id), containerRowBoundsButton));
