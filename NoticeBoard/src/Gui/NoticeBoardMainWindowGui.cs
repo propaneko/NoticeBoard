@@ -56,7 +56,7 @@ public class NoticeBoardMainWindowGui : GuiDialog
         };
 
         NoticeBoardModSystem.getCAPI().Network.GetChannel("noticeboard").SendPacket(removeMessage);
-        GetMessages();               // Refresh the GUI
+        GetMessages();
         return true;
     }
 
@@ -136,7 +136,6 @@ public class NoticeBoardMainWindowGui : GuiDialog
             }
         }
 
-        // Compose the dialog
         SingleComposer.Compose();
 
         int messagesCount = messages?.Count ?? 0;
@@ -180,21 +179,7 @@ public class NoticeBoardMainWindowGui : GuiDialog
 
     private void OnTitleBarClose()
     {
-        TryClose(); // Close the GUI when the title bar close button is clicked
+        TryClose();
     }
-
-    private static Random random = new Random();
-    public static string RandomString(int length)
-    {
-        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        return new string(Enumerable.Repeat(chars, length)
-            .Select(s => s[random.Next(s.Length)]).ToArray());
-    }
-    private bool OnButtonClick()
-    {
-        capi.ShowChatMessage($"Button clicked! board id: {this.boardId}");
-        return true;
-    }
-
     public override string ToggleKeyCombinationCode => null;
 }

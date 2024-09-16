@@ -1,0 +1,11 @@
+﻿{
+  "block-noticeboard-*": "Дошка оголошень",
+
+  "main-window-title-bar": "Дошка оголошень",
+  "main-window-add-notice-button": "Додати оголошення",
+
+  "add-notice-window-title": "Напишіть повідомлення",
+  "add-notice-window-pin-button": "Закріпити",
+
+  "new-notice-proximity-message": "залишив нове оголошення на дошці в позиції"
+}

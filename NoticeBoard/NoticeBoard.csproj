@@ -54,6 +54,7 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
   </Content>
   <None Remove="assets\noticeboard\lang\pl.json" />
+  <None Remove="assets\noticeboard\lang\uk.json" />
   <None Remove="assets\noticeboard\recipes\grid\noticeboardrecipe.json" />
   <None Remove="assets\noticeboard\shapes\item\noticeboard0.json" />
   <None Remove="assets\noticeboard\shapes\item\noticeboard1.json" />
