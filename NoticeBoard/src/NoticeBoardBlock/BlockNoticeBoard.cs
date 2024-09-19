@@ -10,36 +10,45 @@ namespace NoticeBoard
     {
         string blockUniqueId;
 
-        public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
+        ICoreAPI Api;
+
+        public override void OnLoaded(ICoreAPI api)
         {
-            BlockPos blockPos = blockSel.Position;
+            base.OnLoaded(api);
 
-            if (world.BlockAccessor.GetBlockEntity(blockPos) is NoticeBoardBlockEntity blockEntity)
-            {
-                blockUniqueId = blockEntity.uniqueID;
-            }
-
-            if (world.Side == EnumAppSide.Client)
-            {
-                PlayerCreateNoticeBoard sendPacket = new PlayerCreateNoticeBoard
-                {
-                    BoardId = blockUniqueId,
-                    Pos = blockPos.ToLocalPosition(NoticeBoardModSystem.getCAPI()).ToString(),
-                };
-
-                NoticeBoardModSystem.getCAPI().Network.GetChannel("noticeboard").SendPacket(sendPacket);
-
-                RequestAllMessages requestPacket = new RequestAllMessages
-                {
-                    BoardId = blockUniqueId,
-                    PlayerId = byPlayer.PlayerUID
-                };
-
-                NoticeBoardModSystem.getCAPI().Network.GetChannel("noticeboard").SendPacket(requestPacket);
-            }
-
-            return base.OnBlockInteractStart(world, byPlayer, blockSel);
+            Api = api;
         }
+        //public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
+        //{
+        //    BlockPos blockPos = blockSel.Position;
+
+        //    //if (world.BlockAccessor.GetBlockEntity(blockPos) is NoticeBoardBlockEntity blockEntity)
+        //    //{
+        //    //    blockUniqueId = blockEntity.uniqueID;
+        //    //}
+
+        //    //if (world.Side == EnumAppSide.Client)
+        //    //{
+        //    //    PlayerCreateNoticeBoard sendPacket = new PlayerCreateNoticeBoard
+        //    //    {
+        //    //        BoardId = blockUniqueId,
+        //    //        Pos = blockPos.ToLocalPosition(NoticeBoardModSystem.getCAPI()).ToString(),
+        //    //    };
+
+        //    //    NoticeBoardModSystem.getCAPI().Network.GetChannel("noticeboard").SendPacket(sendPacket);
+
+        //    //    RequestAllMessages requestPacket = new RequestAllMessages
+        //    //    {
+        //    //        BoardId = blockUniqueId,
+        //    //        PlayerId = byPlayer.PlayerUID
+        //    //    };
+
+        //    //    NoticeBoardModSystem.getCAPI().Network.GetChannel("noticeboard").SendPacket(requestPacket);
+        //    //}
+
+        //    return base.OnBlockInteractStart(world, byPlayer, blockSel);
+        //}
+
 
         public void ChangeBlockShape(IWorldAccessor world, BlockPos pos, int messageCount)
         {

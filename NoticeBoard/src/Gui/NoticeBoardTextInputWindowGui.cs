@@ -107,7 +107,7 @@ public class NoticeBoardTextInputWindowGui : GuiDialog
 
         NoticeBoardModSystem.getCAPI().Network.GetChannel("noticeboard").SendPacket(sendMessage);
         // Optionally close the dialog after submission
-        parentContext.GetMessages();
+        //parentContext.GetMessages();
         TryClose();
 
         return true;

@@ -17,13 +17,13 @@ namespace NoticeBoard.src.Events
         private void OnServerMessagesReceived(ResponseAllMessages packet)
         {
             // If the GUI is not open, create and open it
-            if (messageBoardGui == null || !messageBoardGui.IsOpened())
-            {
-                messageBoardGui = new NoticeBoardMainWindowGui("NoticeBoardGui", packet, NoticeBoardModSystem.getCAPI());
-                messageBoardGui.TryOpen();
-            }
+            //if (messageBoardGui == null || !messageBoardGui.IsOpened())
+            //{
+            //    messageBoardGui = new NoticeBoardMainWindowGui("NoticeBoardGui", packet, NoticeBoardModSystem.getCAPI());
+            //    messageBoardGui.TryOpen();
+            //}
 
-            messageBoardGui.UpdateMessages(packet.Messages);
+            //messageBoardGui.UpdateMessages(packet.Messages);
         }
     }
 }

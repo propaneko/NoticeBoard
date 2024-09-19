@@ -5,6 +5,8 @@ using System.Linq;
 using Vintagestory.API.Client;
 using NoticeBoard.src.Packets;
 using Vintagestory.API.Config;
+using Vintagestory.API.Common;
+using static NoticeBoard.NoticeBoardBlockEntity;
 
 public class NoticeBoardMainWindowGui : GuiDialog
 {
@@ -15,10 +17,9 @@ public class NoticeBoardMainWindowGui : GuiDialog
     public NoticeBoardMainWindowGui context;
     private NoticeBoardTextInputWindowGui textInputGui;
 
-    public NoticeBoardMainWindowGui(string dialogTitle, ResponseAllMessages packet, ICoreClientAPI capi) : base(capi)
+    public NoticeBoardMainWindowGui(string dialogTitle, InventoryGeneric inv, DialogPacket packet, ICoreClientAPI capi) : base(capi)
     {
-        this.boardId = packet.BoardId;
-        this.playerId = packet.PlayerId;
+        this.boardId = packet.UniqueID;
         this.messages = packet.Messages;
         context = this;
     }
@@ -42,7 +43,7 @@ public class NoticeBoardMainWindowGui : GuiDialog
             textInputGui.TryOpen();
         }
 
-        GetMessages();
+        //GetMessages();
         return true;
     }
 
@@ -56,7 +57,7 @@ public class NoticeBoardMainWindowGui : GuiDialog
         };
 
         NoticeBoardModSystem.getCAPI().Network.GetChannel("noticeboard").SendPacket(removeMessage);
-        GetMessages();
+        //GetMessages();
         return true;
     }
 
@@ -155,15 +156,15 @@ public class NoticeBoardMainWindowGui : GuiDialog
         bounds.CalcWorldBounds();
     }
 
-    public void GetMessages()
-    {
-        RequestAllMessages requestPacket = new RequestAllMessages
-        {
-            BoardId = boardId
-        };
+    //public void GetMessages()
+    //{
+    //    RequestAllMessages requestPacket = new RequestAllMessages
+    //    {
+    //        BoardId = boardId
+    //    };
 
-        NoticeBoardModSystem.getCAPI().Network.GetChannel("noticeboard").SendPacket(requestPacket);
-    }
+    //    NoticeBoardModSystem.getCAPI().Network.GetChannel("noticeboard").SendPacket(requestPacket);
+    //}
 
     public void RefreshMessageList()
     {
