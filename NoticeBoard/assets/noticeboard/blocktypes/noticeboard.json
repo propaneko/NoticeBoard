@@ -5,10 +5,6 @@
 	"creativeinventory": {
 		"general": [ "*0-north" ]
 	},
-	"behaviors": [
-		{ "name": "BreakIfFloating" },
-		{ "name": "Container" }
-	],
 	"variantGroups": [
 		{
 			"code": "messageCount",
@@ -20,6 +16,8 @@
 		}
 	],
 	"behaviors": [
+		{ "name": "BreakIfFloating" },
+		{ "name": "Container" },
 		{
 			"name": "HorizontalOrientable"
 		},

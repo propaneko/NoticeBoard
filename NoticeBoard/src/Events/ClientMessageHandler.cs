@@ -1,8 +1,8 @@
-﻿using NoticeBoard.src.Packets;
+﻿using NoticeBoard.Packets;
 using System.Collections.Generic;
 using Vintagestory.API.Server;
 
-namespace NoticeBoard.src.Events
+namespace NoticeBoard.Events
 {
     internal class ClientMessageHandler
     {

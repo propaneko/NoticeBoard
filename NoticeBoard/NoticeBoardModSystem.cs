@@ -1,11 +1,11 @@
 ﻿using Microsoft.Data.Sqlite;
-using NoticeBoard.src.Events;
-using NoticeBoard.src.Packets;
+using NoticeBoard.Events;
+using NoticeBoard.Packets;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Server;
 
-namespace NoticeBoard.src
+namespace NoticeBoard
 {
     public class NoticeBoardModSystem : ModSystem
     {
@@ -61,6 +61,7 @@ namespace NoticeBoard.src
             .RegisterMessageType(typeof(ResponseIsActive))
             .RegisterMessageType(typeof(ResponseAllMessages))
             .RegisterMessageType(typeof(PlayerSendMessage))
+            .RegisterMessageType(typeof(PlayerEditMessage))
             .RegisterMessageType(typeof(PlayerDestroyNoticeBoard))
             .RegisterMessageType(typeof(PlayerCreateNoticeBoard))
             .RegisterMessageType(typeof(PlayerRemoveMessage));

@@ -1,7 +1,7 @@
 ﻿using ProtoBuf;
 using System.Collections.Generic;
 
-namespace NoticeBoard.src.Packets
+namespace NoticeBoard.Packets
 {
 
     [ProtoContract]
@@ -52,6 +52,16 @@ namespace NoticeBoard.src.Packets
         public string BoardId { get; set; }
         [ProtoMember(3)]
         public string PlayerId { get; set; }
+    }
+
+    [ProtoContract]
+    public class PlayerEditMessage
+    {
+        [ProtoMember(1)]
+        public int Id { get; set; }
+
+        [ProtoMember(2)]
+        public string Message { get; set; }
     }
 
     [ProtoContract]

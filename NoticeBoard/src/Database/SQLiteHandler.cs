@@ -1,9 +1,7 @@
 ﻿using System.Collections.Generic;
 using Microsoft.Data.Sqlite;
-using NoticeBoard.src;
-using NoticeBoard.src.Packets;
-using Vintagestory.API.MathTools;
-
+using NoticeBoard;
+using NoticeBoard.Packets;
 public class SQLiteHandler
 {
     private readonly SQLiteDatabase SQLiteDatabase = NoticeBoardModSystem.getModInstance().getDatabaseHandler();
@@ -29,6 +27,17 @@ public class SQLiteHandler
             command.Parameters.AddWithValue("@boardId", packet.BoardId);
             command.Parameters.AddWithValue("@playerId", packet.PlayerId);
             command.ExecuteNonQuery();
+        }
+    }
+
+    public void EditMessageById(int id, string message)
+    {
+        this.SQLiteDatabase.TryOpenConnection();
+        using (SqliteCommand sqliteCommand = new SqliteCommand("UPDATE messages SET message = @message WHERE id = @id", this.SQLiteConnection))
+        {
+            sqliteCommand.Parameters.AddWithValue("@id", id);
+            sqliteCommand.Parameters.AddWithValue("@message", message);
+            sqliteCommand.ExecuteNonQuery();
         }
     }
 

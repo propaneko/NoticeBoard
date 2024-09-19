@@ -1,6 +1,6 @@
 ﻿using System.IO;
 using Microsoft.Data.Sqlite;
-using NoticeBoard.src;
+using NoticeBoard;
 using Vintagestory.API.Config;
 
 public class SQLiteDatabase

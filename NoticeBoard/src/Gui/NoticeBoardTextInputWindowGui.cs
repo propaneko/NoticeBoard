@@ -1,22 +1,34 @@
-﻿using NoticeBoard.src;
+﻿using NoticeBoard;
 using System.Linq;
 using Vintagestory.API.Client;
-using NoticeBoard.src.Packets;
+using NoticeBoard.Packets;
 using Vintagestory.API.Config;
+using Vintagestory.API.MathTools;
 
 public class NoticeBoardTextInputWindowGui : GuiDialog
 {
     private string boardId;
     private string playerId;
+    private BlockPos pos;
 
     private NoticeBoardMainWindowGui parentContext;
+    private string mode;
+    private int messageId;
+    private string message;
 
-
-    public NoticeBoardTextInputWindowGui(NoticeBoardMainWindowGui context, string boardId, string playerId, ICoreClientAPI capi) : base(capi)
+    public NoticeBoardTextInputWindowGui(ICoreClientAPI capi, NoticeBoardMainWindowGui context, string boardId, string playerId, BlockPos pos, string mode, int messageId = -1, string message = "")
+		: base(capi)
     {
+        this.pos = pos;
         this.boardId = boardId;
         this.playerId = playerId;
-        parentContext = context;
+        this.mode = mode;
+        this.parentContext = context;
+        if (mode == "edit")
+        {
+            this.message = message;
+            this.messageId = messageId;
+        }
     }
 
     public override void OnGuiOpened()
@@ -65,6 +77,10 @@ public class NoticeBoardTextInputWindowGui : GuiDialog
                 .EndClip();
 
         SingleComposer.Compose();
+        if (this.mode == "edit")
+        {
+            base.SingleComposer.GetTextArea("messageInput").SetValue(this.message, true);
+        }
     }
 
     private void OnTextChanged(string text)
@@ -94,25 +110,39 @@ public class NoticeBoardTextInputWindowGui : GuiDialog
         // Optional: Handle text input changes, if needed
     }
 
-    private bool OnSendButtonClicked()
+    public void GetMessages()
     {
-        string message = SingleComposer.GetTextArea("messageInput").GetText();
-
-        PlayerSendMessage sendMessage = new PlayerSendMessage
-        {
-            Message = message,
-            BoardId = boardId,
-            PlayerId = playerId
-        };
-
-        NoticeBoardModSystem.getCAPI().Network.GetChannel("noticeboard").SendPacket(sendMessage);
-        // Optionally close the dialog after submission
-        //parentContext.GetMessages();
-        TryClose();
-
-        return true;
+        NoticeBoardBlockEntity noticeBoardEntity = this.capi.World.BlockAccessor.GetBlockEntity(this.pos) as NoticeBoardBlockEntity;
+        this.capi.Network.SendBlockEntityPacket(noticeBoardEntity.Pos, 2138, null);
     }
+    private bool OnSendButtonClicked()
+	{
+		if (this.mode == "edit")
+		{
+			string text = base.SingleComposer.GetTextArea("messageInput").GetText();
+			PlayerEditMessage playerEditMessage = new PlayerEditMessage
+			{
+				Id = this.messageId,
+				Message = text
+			};
+			NoticeBoardModSystem.getCAPI().Network.GetChannel("noticeboard").SendPacket<PlayerEditMessage>(playerEditMessage);
+			GetMessages();
+			this.TryClose();
+			return true;
+		}
 
+		string text2 = base.SingleComposer.GetTextArea("messageInput").GetText();
+		PlayerSendMessage playerSendMessage = new PlayerSendMessage
+		{
+			Message = text2,
+			BoardId = this.boardId,
+			PlayerId = this.playerId
+		};
+		NoticeBoardModSystem.getCAPI().Network.GetChannel("noticeboard").SendPacket<PlayerSendMessage>(playerSendMessage);
+		this.parentContext.GetMessages();
+		this.TryClose();
+		return true;
+	}
 
     private void OnCloseDialog()
     {

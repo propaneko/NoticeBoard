@@ -1,8 +1,8 @@
 ﻿using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Datastructures;
-using NoticeBoard.src;
-using NoticeBoard.src.Packets;
+using NoticeBoard;
+using NoticeBoard.Packets;
 
 namespace NoticeBoard
 {
@@ -18,37 +18,6 @@ namespace NoticeBoard
 
             Api = api;
         }
-        //public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
-        //{
-        //    BlockPos blockPos = blockSel.Position;
-
-        //    //if (world.BlockAccessor.GetBlockEntity(blockPos) is NoticeBoardBlockEntity blockEntity)
-        //    //{
-        //    //    blockUniqueId = blockEntity.uniqueID;
-        //    //}
-
-        //    //if (world.Side == EnumAppSide.Client)
-        //    //{
-        //    //    PlayerCreateNoticeBoard sendPacket = new PlayerCreateNoticeBoard
-        //    //    {
-        //    //        BoardId = blockUniqueId,
-        //    //        Pos = blockPos.ToLocalPosition(NoticeBoardModSystem.getCAPI()).ToString(),
-        //    //    };
-
-        //    //    NoticeBoardModSystem.getCAPI().Network.GetChannel("noticeboard").SendPacket(sendPacket);
-
-        //    //    RequestAllMessages requestPacket = new RequestAllMessages
-        //    //    {
-        //    //        BoardId = blockUniqueId,
-        //    //        PlayerId = byPlayer.PlayerUID
-        //    //    };
-
-        //    //    NoticeBoardModSystem.getCAPI().Network.GetChannel("noticeboard").SendPacket(requestPacket);
-        //    //}
-
-        //    return base.OnBlockInteractStart(world, byPlayer, blockSel);
-        //}
-
 
         public void ChangeBlockShape(IWorldAccessor world, BlockPos pos, int messageCount)
         {
