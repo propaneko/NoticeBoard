@@ -30,10 +30,11 @@ Will add some config option later if needed.
 
 ## Ideas
 need of use for the "paper-parchment" when trying to post message (to make it more immersive?)
-Contribution
+
+## Contribution & Thanks
 
 "Automatic_Yoba_Machine" - Thank you for providing this amazing new model!
-
+"BASIC" - Thank you for creating your amazing Proxmity chat mod!
 
 Shield: [![CC BY 4.0][cc-by-shield]][cc-by]
 
