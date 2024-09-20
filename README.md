@@ -1,6 +1,6 @@
 
 ```diff
-- IMPORTANT! If you used the older version of my mod you need to remove "Y:\*\ModConfig\noticeboard\noticeboard.db" or crashes might happen!
+- IMPORTANT! If you used the older version of my mod you need to remove "Y:\*\ModConfig\noticeboard" directory or crashes might happen!
 ```
 ## Basics
 
