@@ -1,9 +1,7 @@
-﻿using NoticeBoard.src;
-using System;
+﻿using NoticeBoard;
 using System.Collections.Generic;
-using System.Linq;
 using Vintagestory.API.Client;
-using NoticeBoard.src.Packets;
+using NoticeBoard.Packets;
 using Vintagestory.API.Config;
 
 public class NoticeBoardMainWindowGui : GuiDialog
@@ -34,7 +32,7 @@ public class NoticeBoardMainWindowGui : GuiDialog
 
         if (textInputGui == null || !textInputGui.IsOpened())
         {
-            textInputGui = new NoticeBoardTextInputWindowGui(context, boardId, playerId, capi);
+            textInputGui = new NoticeBoardTextInputWindowGui(this.capi, this.context, this.boardId, this.playerId, "add");
             textInputGui.TryOpen();
         } else
         {
@@ -42,7 +40,6 @@ public class NoticeBoardMainWindowGui : GuiDialog
             textInputGui.TryOpen();
         }
 
-        GetMessages();
         return true;
     }
 
@@ -57,6 +54,22 @@ public class NoticeBoardMainWindowGui : GuiDialog
 
         NoticeBoardModSystem.getCAPI().Network.GetChannel("noticeboard").SendPacket(removeMessage);
         GetMessages();
+        return true;
+    }
+
+    private bool EditMessage(int id)
+    {
+        Message message = this.messages.Find((Message m) => m.Id == id);
+        if (this.textInputGui == null || !this.textInputGui.IsOpened())
+        {
+            this.textInputGui = new NoticeBoardTextInputWindowGui(this.capi, this.context, this.boardId, this.playerId, "edit", message.Id, message.Text);
+            this.textInputGui.TryOpen();
+        }
+        else
+        {
+            this.textInputGui.TryClose();
+            this.textInputGui.TryOpen();
+        }
         return true;
     }
 
@@ -84,6 +97,7 @@ public class NoticeBoardMainWindowGui : GuiDialog
         ElementBounds containerBounds = insetBounds.ForkContainingChild(GuiStyle.HalfPadding, GuiStyle.HalfPadding, GuiStyle.HalfPadding, GuiStyle.HalfPadding);
         ElementBounds containerRowBounds = ElementBounds.Fixed(0, 0, insetWidth, rowHeight);
         ElementBounds containerRowBoundsButton = ElementBounds.Fixed(870, 0, 20, 20);
+        ElementBounds editButtonBounds = ElementBounds.Fixed(870, 0, 20, 20);
 
         ElementBounds buttonBounds = insetBounds.RightCopy().WithFixedWidth(120).WithFixedHeight(40).WithFixedOffset(36, 0); // Button position and size
 
@@ -124,15 +138,22 @@ public class NoticeBoardMainWindowGui : GuiDialog
 
                 containerRowBoundsButton = containerRowBounds.RightCopy().WithFixedPosition(530, containerRowBounds.fixedY + 8).WithFixedHeight(10).WithFixedWidth(30);
                 containerRowBoundsButton.WithFixedMargin(0, 8);
+
+                editButtonBounds = containerRowBounds.RightCopy().WithFixedPosition(530, containerRowBounds.fixedY + 48).WithFixedHeight(10).WithFixedWidth(30);
+                editButtonBounds.WithFixedMargin(0, 8);
+
                 //containerRowBoundsButton.WithFixedMargin(0, 8);
 
                 GuiElementStaticText textElement = new GuiElementStaticText(capi, message, EnumTextOrientation.Left, containerRowBounds, CairoFont.WhiteDetailText());
 
                 scrollArea.Add(textElement);
                 scrollArea.Add(new GuiElementTextButton(capi, "X", CairoFont.WhiteDetailText(), CairoFont.WhiteDetailText(), () => RemoveMessage(id), containerRowBoundsButton));
+                scrollArea.Add(new GuiElementTextButton(this.capi, "E", CairoFont.WhiteDetailText(), CairoFont.WhiteDetailText(), () => this.EditMessage(id), editButtonBounds, EnumButtonStyle.Normal), -1);
 
                 containerRowBounds = containerRowBounds.BelowCopy();
                 containerRowBoundsButton = containerRowBoundsButton.BelowCopy();
+                editButtonBounds = editButtonBounds.BelowCopy();
+
             }
         }
 

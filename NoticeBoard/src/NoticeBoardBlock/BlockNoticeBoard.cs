@@ -1,8 +1,8 @@
 ﻿using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Datastructures;
-using NoticeBoard.src;
-using NoticeBoard.src.Packets;
+using NoticeBoard;
+using NoticeBoard.Packets;
 
 namespace NoticeBoard
 {
@@ -54,12 +54,10 @@ namespace NoticeBoard
             string[] splitPath = currentBlock.Code.Path.Split("-");
             Block newBlock = world.GetBlock(new AssetLocation("noticeboard", $"noticeboard-{messageCount}-{splitPath[splitPath.Length - 1]}"));
 
-            // Replace the block with the new variant
             world.BlockAccessor.SetBlock(newBlock.BlockId, pos);
             BlockEntity newEntity = world.BlockAccessor.GetBlockEntity(pos);
             if (newEntity != null)
             {
-                // Restore the entity data to the new BlockEntity
                 newEntity.FromTreeAttributes(blockEntityData, world);
                 newEntity.MarkDirty(true);
             }
@@ -82,15 +80,10 @@ namespace NoticeBoard
                 NoticeBoardModSystem.getCAPI().Network.GetChannel("noticeboard").SendPacket(sendPacket);
             }
 
-            // Your custom code goes here, for example:
             world.Api.Logger.Notification("Block at {0} was destroyed by {1}", pos, byPlayer.PlayerName);
 
-            // You can also spawn custom items or trigger other events
-            // Example: Drop a custom item when the block is destroyed
             base.OnBlockBroken(world, pos, byPlayer, dropQuantityMultiplier);
             if (!world.Side.IsServer()) return; // Ensure only the server handles dropping items
-            //ItemStack drop = new ItemStack(world.GetBlock(new AssetLocation("noticeboard:noticeboard-default-north")));
-            //world.SpawnItemEntity(drop, pos.ToVec3d());
         }
     }
 }

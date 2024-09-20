@@ -1,4 +1,5 @@
-﻿using NoticeBoard.src;
+﻿using NoticeBoard;
+using System;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 
@@ -22,20 +23,22 @@ namespace NoticeBoard
                 uniqueID = System.Guid.NewGuid().ToString();
             }
 
-            RegisterGameTickListener(OnPerformAction, (int)(actionInterval * 1000));
+            RegisterGameTickListener(OnPerformAction, (int)(actionInterval * 500));
 
         }
 
         private void OnPerformAction(float dt)
         {
-            int messageCount = new SQLiteHandler().CountMessageElementsByBoardId(uniqueID);
-           
+            double messageCount = new SQLiteHandler().CountMessageElementsByBoardId(uniqueID);
+            double divisionMessageNumbers = messageCount / NoticeBoardModSystem.getConfig().DivisionForPapersOnBoard;
+            divisionMessageNumbers = divisionMessageNumbers > 6 ? 6 : divisionMessageNumbers;
+            divisionMessageNumbers = Math.Floor(divisionMessageNumbers);
+
             NoticeBoardBlock myBlock = Block as NoticeBoardBlock;
             if (myBlock != null)
             {
-                myBlock.ChangeBlockShape(Api.World, Pos, messageCount);
+                myBlock.ChangeBlockShape(Api.World, Pos, (int)(messageCount == 1 ? messageCount : divisionMessageNumbers));
             }
-
         }
 
         public override void FromTreeAttributes(ITreeAttribute tree, IWorldAccessor worldAccessForResolve)

@@ -1,6 +1,6 @@
 ﻿using System.IO;
 using Microsoft.Data.Sqlite;
-using NoticeBoard.src;
+using NoticeBoard;
 using Vintagestory.API.Config;
 
 public class SQLiteDatabase
@@ -10,23 +10,19 @@ public class SQLiteDatabase
 
     public SQLiteDatabase(string databaseName = "noticeboard.db"): base()
     {
-        // Get the ModConfig directory path
         string modConfigDir = Path.Combine(GamePaths.ModConfig, "noticeboard");
 
-        // Ensure the directory exists
         if (!Directory.Exists(modConfigDir))
         {
             Directory.CreateDirectory(modConfigDir);
         }
 
-        // Set the database file path
         dbFilePath = Path.Combine(modConfigDir, databaseName);
 
         NoticeBoardModSystem.getSAPI().Logger.Debug("[noticeboard] path db is " + dbFilePath);
         connection = new SqliteConnection($"Data Source={dbFilePath};");
         TryOpenConnection();
 
-        // Initialize the SQLite database
         InitializeDatabase();
     }
     public SqliteConnection getSQLiteConnection()

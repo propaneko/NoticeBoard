@@ -1,8 +1,8 @@
-﻿using NoticeBoard.src.Packets;
+﻿using NoticeBoard.Packets;
 using System.Collections.Generic;
 using Vintagestory.API.Server;
 
-namespace NoticeBoard.src.Events
+namespace NoticeBoard.Events
 {
     internal class ClientMessageHandler
     {
@@ -16,7 +16,6 @@ namespace NoticeBoard.src.Events
 
         private void OnServerMessagesReceived(ResponseAllMessages packet)
         {
-            // If the GUI is not open, create and open it
             if (messageBoardGui == null || !messageBoardGui.IsOpened())
             {
                 messageBoardGui = new NoticeBoardMainWindowGui("NoticeBoardGui", packet, NoticeBoardModSystem.getCAPI());

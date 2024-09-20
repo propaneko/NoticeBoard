@@ -1,8 +1,7 @@
 ﻿using System.Collections.Generic;
 using Microsoft.Data.Sqlite;
-using NoticeBoard.src;
-using NoticeBoard.src.Packets;
-using Vintagestory.API.MathTools;
+using NoticeBoard;
+using NoticeBoard.Packets;
 
 public class SQLiteHandler
 {
@@ -12,24 +11,48 @@ public class SQLiteHandler
     public void InsertMessage(PlayerSendMessage packet, string playerName)
     {
         SQLiteDatabase.TryOpenConnection();
-        NoticeBoardModSystem.getSAPI().Logger.Debug($"{packet.PlayerId} {packet.Message} {packet.BoardId} {playerName}");
 
-        string insertPlayerQuery = "INSERT OR IGNORE INTO players (playerId, playerName) VALUES (@playerId, @playerName)";
-        using (var command = new SqliteCommand(insertPlayerQuery, SQLiteConnection))
+        try
         {
-            command.Parameters.AddWithValue("@playerId", packet.PlayerId);
-            command.Parameters.AddWithValue("@playerName", playerName);
-            command.ExecuteNonQuery();
-        }
+            string insertPlayerQuery = "INSERT OR IGNORE INTO players (playerId, playerName) VALUES (@playerId, @playerName)";
+            using (var command = new SqliteCommand(insertPlayerQuery, SQLiteConnection))
+            {
+                command.Parameters.AddWithValue("@playerId", packet.PlayerId);
+                command.Parameters.AddWithValue("@playerName", playerName);
+                command.ExecuteNonQuery();
+            }
 
-        string insertQuery = "INSERT INTO messages (message, boardId, playerId) VALUES (@message, @boardId, @playerId)";
-        using (var command = new SqliteCommand(insertQuery, SQLiteConnection))
+            string insertQuery = "INSERT INTO messages (message, boardId, playerId) VALUES (@message, @boardId, @playerId)";
+            using (var command = new SqliteCommand(insertQuery, SQLiteConnection))
+            {
+                command.Parameters.AddWithValue("@message", packet.Message);
+                command.Parameters.AddWithValue("@boardId", packet.BoardId);
+                command.Parameters.AddWithValue("@playerId", packet.PlayerId);
+                command.ExecuteNonQuery();
+            }
+        } catch
         {
-            command.Parameters.AddWithValue("@message", packet.Message);
-            command.Parameters.AddWithValue("@boardId", packet.BoardId);
-            command.Parameters.AddWithValue("@playerId", packet.PlayerId);
-            command.ExecuteNonQuery();
+            NoticeBoardModSystem.getSAPI().Logger.Error("Couldnt send message");
         }
+        
+    }
+
+    public void EditMessageById(int id, string message)
+    {
+        this.SQLiteDatabase.TryOpenConnection();
+        try
+        {
+            using (SqliteCommand sqliteCommand = new SqliteCommand("UPDATE messages SET message = @message WHERE id = @id", this.SQLiteConnection))
+            {
+                sqliteCommand.Parameters.AddWithValue("@id", id);
+                sqliteCommand.Parameters.AddWithValue("@message", message);
+                sqliteCommand.ExecuteNonQuery();
+            }
+        } catch
+        {
+            NoticeBoardModSystem.getSAPI().Logger.Error("Couldnt edit message");
+        }
+       
     }
 
     public void CreateNoticeBoard(PlayerCreateNoticeBoard packet)
@@ -127,7 +150,7 @@ public class SQLiteHandler
             }
         }
 
-        return rowCount > 6 ? 6 : rowCount;
+        return rowCount;
     }
 
     public void DeleteMessage(int id)

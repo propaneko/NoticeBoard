@@ -1,13 +1,11 @@
-﻿using NoticeBoard.src.Packets;
+﻿using NoticeBoard.Packets;
 using System.Collections.Generic;
-using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 using Vintagestory.API.Server;
+using NoticeBoard.Utils;
 using NoticeBoard.Extensions;
-using System.Linq;
 
-
-namespace NoticeBoard.src.Events
+namespace NoticeBoard.Events
 {
     internal class ServerMessageHandler
     {
@@ -16,6 +14,7 @@ namespace NoticeBoard.src.Events
         {
             NoticeBoardModSystem.getSAPI().Network.GetChannel("noticeboard").SetMessageHandler<RequestAllMessages>(OnPlayerRequestAllMessages);
             NoticeBoardModSystem.getSAPI().Network.GetChannel("noticeboard").SetMessageHandler<PlayerSendMessage>(OnPlayerSendMessage);
+            NoticeBoardModSystem.getSAPI().Network.GetChannel("noticeboard").SetMessageHandler<PlayerEditMessage>(OnPlayerEditMessage);
             NoticeBoardModSystem.getSAPI().Network.GetChannel("noticeboard").SetMessageHandler<PlayerRemoveMessage>(OnPlayerRemoveMessage);
             NoticeBoardModSystem.getSAPI().Network.GetChannel("noticeboard").SetMessageHandler<PlayerDestroyNoticeBoard>(OnPlayerDestroyNoticeBoard);
             NoticeBoardModSystem.getSAPI().Network.GetChannel("noticeboard").SetMessageHandler<PlayerCreateNoticeBoard>(OnPlayerCreateNoticeBoard);
@@ -37,34 +36,31 @@ namespace NoticeBoard.src.Events
             db.DeleteMessage(packet.MessageId);
         }
 
+        private void OnPlayerEditMessage(IServerPlayer player, PlayerEditMessage packet)
+        {
+            db.EditMessageById(packet.Id, packet.Message);
+        }
+
         private void OnPlayerSendMessage(IServerPlayer player, PlayerSendMessage packet)
         {
 
             db.InsertMessage(packet, player.PlayerName);
 
-            var proximityGroup = NoticeBoardModSystem.getSAPI().Groups.GetPlayerGroupByName("Proximity").Uid;
-            if (proximityGroup != 0)
+            if (NoticeBoardModSystem.getConfig().SendProximityMessage)
             {
-                NoticeBoardObject noticeBoard = db.GetBoardData(packet.BoardId);
-                string rpNickName = NoticeBoardModSystem.getSAPI().GetPlayerByUID(player.PlayerUID).GetModData("BASIC_NICKNAME", player.PlayerName);
+                var proximityGroup = NoticeBoardModSystem.getSAPI().Groups.GetPlayerGroupByName("Proximity").Uid;
+                if (proximityGroup != 0)
+                {
+                    NoticeBoardObject noticeBoard = db.GetBoardData(packet.BoardId);
+                    string rpNickName = NoticeBoardModSystem.getSAPI().GetPlayerByUID(player.PlayerUID).GetModData("BASIC_NICKNAME", player.PlayerName);
 
-                string message = $"<strong>{rpNickName}</strong> {Lang.Get("noticeboard:new-notice-proximity-message")} ({noticeBoard.Pos})";
-                SendLocalChatByPlayer(player, message);
+                    string message = $"<strong>{rpNickName}</strong> {Lang.Get("noticeboard:new-notice-proximity-message")} ({noticeBoard.Pos})";
+                    Proximity.SendLocalChatByPlayer(player, message, NoticeBoardModSystem.getConfig().ProximityMessageDistance);
+                }
             }
         }
 
-        private void SendLocalChatByPlayer(IServerPlayer byPlayer, string message, int distanceToBroadcast = 100, EnumChatType chatType = EnumChatType.OthersMessage, string data = null)
-        {
-            var proximityGroup = NoticeBoardModSystem.getSAPI().Groups.GetPlayerGroupByName("Proximity");
-            foreach (var player in NoticeBoardModSystem.getSAPI().World.AllOnlinePlayers.Where(x =>
-                         x.Entity.Pos.AsBlockPos.ManhattenDistance(byPlayer.Entity.Pos.AsBlockPos) < distanceToBroadcast))
-            {
-                var serverPlayer = player as IServerPlayer;
-
-                serverPlayer.SendMessage(proximityGroup.Uid, message, chatType, data);
-            }
-        }
-
+      
         private void OnPlayerRequestAllMessages(IServerPlayer player, RequestAllMessages packet)
         {
             List<Message> messages = db.GetAllMessages(packet.BoardId);

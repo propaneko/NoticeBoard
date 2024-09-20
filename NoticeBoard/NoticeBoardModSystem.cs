@@ -1,11 +1,13 @@
 ﻿using Microsoft.Data.Sqlite;
-using NoticeBoard.src.Events;
-using NoticeBoard.src.Packets;
+using NoticeBoard.Configs;
+using NoticeBoard.Events;
+using NoticeBoard.Packets;
+using System;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Server;
 
-namespace NoticeBoard.src
+namespace NoticeBoard
 {
     public class NoticeBoardModSystem : ModSystem
     {
@@ -13,6 +15,9 @@ namespace NoticeBoard.src
         static ICoreServerAPI sapi;
         static ICoreClientAPI capi;
         static SQLiteDatabase databaseHandler;
+
+        public static ModConfig config;
+        private const string ConfigName = "noticeboard/noticeboard.json";
         public NoticeBoardModSystem()
         {
             modInstance = this;
@@ -37,7 +42,12 @@ namespace NoticeBoard.src
         {
             return modInstance;
         }
-        public static void loadDatabase()
+
+        public static ModConfig getConfig()
+        {
+            return config;
+        }
+        public static void LoadDatabase()
         {
             try
             {
@@ -46,6 +56,27 @@ namespace NoticeBoard.src
             catch (SqliteException ex)
             {
                 sapi.Logger.Error("loadDatabase:" + ex.Message);
+            }
+        }
+
+        private void LoadConfig()
+        {
+            try
+            {
+                config = sapi.LoadModConfig<ModConfig>(ConfigName);
+            }
+            catch (Exception)
+            {
+                sapi.Server.LogError("NoticeBoard: Failed to load mod config!");
+                return;
+            }
+
+            if (config == null)
+            {
+                sapi.Server.LogNotification("NoticeBoards: non-existant modconfig at 'ModConfig/noticeboard" + ConfigName +
+                                           "', creating default...");
+                config = new ModConfig();
+                sapi.StoreModConfig(config, ConfigName);
             }
         }
 
@@ -61,6 +92,7 @@ namespace NoticeBoard.src
             .RegisterMessageType(typeof(ResponseIsActive))
             .RegisterMessageType(typeof(ResponseAllMessages))
             .RegisterMessageType(typeof(PlayerSendMessage))
+            .RegisterMessageType(typeof(PlayerEditMessage))
             .RegisterMessageType(typeof(PlayerDestroyNoticeBoard))
             .RegisterMessageType(typeof(PlayerCreateNoticeBoard))
             .RegisterMessageType(typeof(PlayerRemoveMessage));
@@ -83,8 +115,9 @@ namespace NoticeBoard.src
             sapi = api;
 
             sapi.Event.ServerRunPhase(EnumServerRunPhase.ModsAndConfigReady, () => 
-            { 
-                loadDatabase();
+            {
+                LoadConfig();
+                LoadDatabase();
                 new ServerMessageHandler().SetMessageHandlers();
             });
         }

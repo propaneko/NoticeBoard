@@ -1,22 +1,32 @@
-﻿using NoticeBoard.src;
+﻿using NoticeBoard;
 using System.Linq;
 using Vintagestory.API.Client;
-using NoticeBoard.src.Packets;
+using NoticeBoard.Packets;
 using Vintagestory.API.Config;
 
 public class NoticeBoardTextInputWindowGui : GuiDialog
 {
     private string boardId;
     private string playerId;
+    private string mode;
+    private int messageId;
+    private string message;
 
     private NoticeBoardMainWindowGui parentContext;
 
 
-    public NoticeBoardTextInputWindowGui(NoticeBoardMainWindowGui context, string boardId, string playerId, ICoreClientAPI capi) : base(capi)
+    public NoticeBoardTextInputWindowGui(ICoreClientAPI capi, NoticeBoardMainWindowGui context, string boardId, string playerId, string mode, int messageId = -1, string message = "")
+        : base(capi)
     {
         this.boardId = boardId;
         this.playerId = playerId;
-        parentContext = context;
+        this.mode = mode;
+        this.parentContext = context;
+        if (mode == "edit")
+        {
+            this.message = message;
+            this.messageId = messageId;
+        }
     }
 
     public override void OnGuiOpened()
@@ -65,21 +75,22 @@ public class NoticeBoardTextInputWindowGui : GuiDialog
                 .EndClip();
 
         SingleComposer.Compose();
+        if (this.mode == "edit")
+        {
+            base.SingleComposer.GetTextArea("messageInput").SetValue(message);
+        }
     }
 
     private void OnTextChanged(string text)
     {
         string[] lines = text.Split('\n');
 
-        // Define the maximum number of lines
         int maxLines = 4;
 
         if (lines.Length > maxLines)
         {
-            // Restrict the text to the first maxLines lines
             string limitedText = string.Join("\n", lines.Take(maxLines));
 
-            // Update the TextArea with the limited text
             SingleComposer.GetTextArea("messageInput").SetValue(limitedText);
         }
 
@@ -88,28 +99,33 @@ public class NoticeBoardTextInputWindowGui : GuiDialog
             string limitedText = text.Substring(0, 292);
             SingleComposer.GetTextArea("messageInput").SetValue(limitedText);
         }
-
-        NoticeBoardModSystem.getSAPI().Logger.Debug(text.Length.ToString());
-
-        // Optional: Handle text input changes, if needed
     }
 
     private bool OnSendButtonClicked()
     {
-        string message = SingleComposer.GetTextArea("messageInput").GetText();
-
-        PlayerSendMessage sendMessage = new PlayerSendMessage
+        if (mode == "edit")
         {
-            Message = message,
+            string text = base.SingleComposer.GetTextArea("messageInput").GetText();
+            PlayerEditMessage playerEditMessage = new PlayerEditMessage
+            {
+                Id = messageId,
+                Message = text
+            };
+            NoticeBoardModSystem.getCAPI().Network.GetChannel("noticeboard").SendPacket<PlayerEditMessage>(playerEditMessage);
+            parentContext.GetMessages();
+            TryClose();
+            return true;
+        }
+        string text2 = base.SingleComposer.GetTextArea("messageInput").GetText();
+        PlayerSendMessage playerSendMessage = new PlayerSendMessage
+        {
+            Message = text2,
             BoardId = boardId,
             PlayerId = playerId
         };
-
-        NoticeBoardModSystem.getCAPI().Network.GetChannel("noticeboard").SendPacket(sendMessage);
-        // Optionally close the dialog after submission
+        NoticeBoardModSystem.getCAPI().Network.GetChannel("noticeboard").SendPacket<PlayerSendMessage>(playerSendMessage);
         parentContext.GetMessages();
         TryClose();
-
         return true;
     }
 
@@ -117,13 +133,11 @@ public class NoticeBoardTextInputWindowGui : GuiDialog
     private void OnCloseDialog()
     {
         TryClose();
-        //NoticeBoardModSystem.getModInstance().getDatabaseHandler().Close();
     }
 
     private void OnTitleBarClose()
     {
-        TryClose(); // Close the GUI when the title bar close button is clicked
-        //NoticeBoardModSystem.getModInstance().getDatabaseHandler().Close();
+        TryClose();
     }
 
     public override string ToggleKeyCombinationCode => null;
