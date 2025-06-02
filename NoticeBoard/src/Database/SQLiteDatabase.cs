@@ -3,27 +3,24 @@ using Microsoft.Data.Sqlite;
 using NoticeBoard;
 using Vintagestory.API.Config;
 
+namespace NoticeBoard.Database;
 public class SQLiteDatabase
 {
     private string dbFilePath;
     private SqliteConnection connection;
 
-    public SQLiteDatabase(string databaseName = "noticeboard.db"): base()
+    public SQLiteDatabase(string databaseName = "noticeboard.db")
     {
-        string modConfigDir = Path.Combine(GamePaths.ModConfig, "noticeboard");
-
+        string modConfigDir = Path.Combine(GamePaths.DataPath, "ModData/noticeboard");
         if (!Directory.Exists(modConfigDir))
         {
             Directory.CreateDirectory(modConfigDir);
         }
-
-        dbFilePath = Path.Combine(modConfigDir, databaseName);
-
-        NoticeBoardModSystem.getSAPI().Logger.Debug("[noticeboard] path db is " + dbFilePath);
-        connection = new SqliteConnection($"Data Source={dbFilePath};");
-        TryOpenConnection();
-
-        InitializeDatabase();
+        this.dbFilePath = Path.Combine(modConfigDir, databaseName);
+        NoticeBoardModSystem.getSAPI().Logger.Debug("[noticeboard] path db is " + this.dbFilePath);
+        this.connection = new SqliteConnection("Data Source=" + this.dbFilePath + ";");
+        this.TryOpenConnection();
+        this.InitializeDatabase();
     }
     public SqliteConnection getSQLiteConnection()
     {

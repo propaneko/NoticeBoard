@@ -3,6 +3,7 @@ using Microsoft.Data.Sqlite;
 using NoticeBoard;
 using NoticeBoard.Packets;
 
+namespace NoticeBoard.Database;
 public class SQLiteHandler
 {
     private readonly SQLiteDatabase SQLiteDatabase = NoticeBoardModSystem.getModInstance().getDatabaseHandler();

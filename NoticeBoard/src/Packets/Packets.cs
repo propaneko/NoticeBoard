@@ -92,4 +92,10 @@ namespace NoticeBoard.Packets
         [ProtoMember(2)]
         public string Pos { get; set; }
     }
+
+
+    [ProtoContract]
+    public class RefreshNoticeBoard
+    {
+    }
 }

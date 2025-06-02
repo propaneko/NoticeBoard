@@ -1,12 +1,10 @@
-﻿using NoticeBoard.Packets;
-using System.Collections.Generic;
-using Vintagestory.API.Server;
+﻿using NoticeBoard.Gui;
+using NoticeBoard.Packets;
 
 namespace NoticeBoard.Events
 {
     internal class ClientMessageHandler
     {
-        private NoticeBoardModSystem modSystem = NoticeBoardModSystem.getModInstance();
         private NoticeBoardMainWindowGui messageBoardGui;
 
         public void SetMessageHandlers()

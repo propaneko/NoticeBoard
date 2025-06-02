@@ -4,6 +4,7 @@ using Vintagestory.API.Config;
 using Vintagestory.API.Server;
 using NoticeBoard.Utils;
 using NoticeBoard.Extensions;
+using NoticeBoard.Database;
 
 namespace NoticeBoard.Events
 {
@@ -46,9 +47,9 @@ namespace NoticeBoard.Events
 
             db.InsertMessage(packet, player.PlayerName);
 
-            if (NoticeBoardModSystem.getConfig().SendProximityMessage)
+            if (NoticeBoardModSystem.getConfig().SendProximityMessage && NoticeBoardModSystem.getSAPI().Groups.GetPlayerGroupByName(NoticeBoardModSystem.getConfig().ProximityGroupName) != null)
             {
-                var proximityGroup = NoticeBoardModSystem.getSAPI().Groups.GetPlayerGroupByName("Proximity").Uid;
+                var proximityGroup = NoticeBoardModSystem.getSAPI().Groups.GetPlayerGroupByName(NoticeBoardModSystem.getConfig().ProximityGroupName).Uid;
                 if (proximityGroup != 0)
                 {
                     NoticeBoardObject noticeBoard = db.GetBoardData(packet.BoardId);

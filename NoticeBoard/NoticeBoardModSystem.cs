@@ -1,8 +1,11 @@
-﻿using Microsoft.Data.Sqlite;
+﻿using System;
+using HarmonyLib;
+using Microsoft.Data.Sqlite;
+using NoticeBoard.BlockType;
 using NoticeBoard.Configs;
+using NoticeBoard.Database;
 using NoticeBoard.Events;
 using NoticeBoard.Packets;
-using System;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Server;
@@ -11,51 +14,53 @@ namespace NoticeBoard
 {
     public class NoticeBoardModSystem : ModSystem
     {
+        public Harmony harmony;
         public static NoticeBoardModSystem modInstance;
-        static ICoreServerAPI sapi;
-        static ICoreClientAPI capi;
-        static SQLiteDatabase databaseHandler;
-
+        private static ICoreServerAPI sapi;
+        private static ICoreClientAPI capi;
+        private static SQLiteDatabase databaseHandler;
         public static ModConfig config;
-        private const string ConfigName = "noticeboard/noticeboard.json";
+        private const string ConfigName = "noticeboard.json";
+
         public NoticeBoardModSystem()
         {
-            modInstance = this;
+            NoticeBoardModSystem.modInstance = this;
         }
 
         public static ICoreServerAPI getSAPI()
         {
-            return sapi;
+            return NoticeBoardModSystem.sapi;
         }
 
         public static ICoreClientAPI getCAPI()
         {
-            return capi;
+            return NoticeBoardModSystem.capi;
         }
 
         public SQLiteDatabase getDatabaseHandler()
         {
-            return databaseHandler;
+            return NoticeBoardModSystem.databaseHandler;
         }
 
         public static NoticeBoardModSystem getModInstance()
         {
-            return modInstance;
+            return NoticeBoardModSystem.modInstance;
         }
 
         public static ModConfig getConfig()
         {
-            return config;
+            return NoticeBoardModSystem.config;
         }
+
         public static void LoadDatabase()
         {
             try
             {
-                databaseHandler = new SQLiteDatabase();
+                NoticeBoardModSystem.databaseHandler = new SQLiteDatabase("noticeboard.db");
             }
             catch (SqliteException ex)
             {
-                sapi.Logger.Error("loadDatabase:" + ex.Message);
+                NoticeBoardModSystem.sapi.Logger.Error("loadDatabase:" + ex.Message);
             }
         }
 
@@ -63,20 +68,18 @@ namespace NoticeBoard
         {
             try
             {
-                config = sapi.LoadModConfig<ModConfig>(ConfigName);
+                NoticeBoardModSystem.config = NoticeBoardModSystem.sapi.LoadModConfig<ModConfig>("noticeboard.json");
             }
             catch (Exception)
             {
-                sapi.Server.LogError("NoticeBoard: Failed to load mod config!");
+                NoticeBoardModSystem.sapi.Server.LogError("NoticeBoard: Failed to load mod config!", Array.Empty<object>());
                 return;
             }
-
-            if (config == null)
+            if (NoticeBoardModSystem.config == null)
             {
-                sapi.Server.LogNotification("NoticeBoards: non-existant modconfig at 'ModConfig/noticeboard" + ConfigName +
-                                           "', creating default...");
-                config = new ModConfig();
-                sapi.StoreModConfig(config, ConfigName);
+                NoticeBoardModSystem.sapi.Server.LogNotification("NoticeBoards: non-existant modconfig at 'ModConfig/noticeboardnoticeboard.json', creating default...", Array.Empty<object>());
+                NoticeBoardModSystem.config = new ModConfig();
+                NoticeBoardModSystem.sapi.StoreModConfig<ModConfig>(NoticeBoardModSystem.config, "noticeboard.json");
             }
         }
 
@@ -85,43 +88,28 @@ namespace NoticeBoard
             base.Start(api);
             api.RegisterBlockClass("NoticeBoardBlock", typeof(NoticeBoardBlock));
             api.RegisterBlockEntityClass("NoticeBoardBlockEntity", typeof(NoticeBoardBlockEntity));
-
-
-            api.Network.RegisterChannel("noticeboard")
-            .RegisterMessageType(typeof(RequestAllMessages))
-            .RegisterMessageType(typeof(ResponseIsActive))
-            .RegisterMessageType(typeof(ResponseAllMessages))
-            .RegisterMessageType(typeof(PlayerSendMessage))
-            .RegisterMessageType(typeof(PlayerEditMessage))
-            .RegisterMessageType(typeof(PlayerDestroyNoticeBoard))
-            .RegisterMessageType(typeof(PlayerCreateNoticeBoard))
-            .RegisterMessageType(typeof(PlayerRemoveMessage));
-
-            api.Logger.Notification("Hello from template mod: " + api.Side);
+            api.Network.RegisterChannel("noticeboard").RegisterMessageType(typeof(RequestAllMessages)).RegisterMessageType(typeof(ResponseIsActive)).RegisterMessageType(typeof(ResponseAllMessages)).RegisterMessageType(typeof(RefreshNoticeBoard)).RegisterMessageType(typeof(PlayerSendMessage)).RegisterMessageType(typeof(PlayerEditMessage)).RegisterMessageType(typeof(PlayerDestroyNoticeBoard)).RegisterMessageType(typeof(PlayerCreateNoticeBoard)).RegisterMessageType(typeof(PlayerRemoveMessage));
         }
 
         public override void StartClientSide(ICoreClientAPI api)
         {
             base.StartClientSide(api);
-            capi = api;
-
+            NoticeBoardModSystem.capi = api;
             new ClientMessageHandler().SetMessageHandlers();
         }
-
 
         public override void StartServerSide(ICoreServerAPI api)
         {
             base.StartServerSide(api);
-            sapi = api;
-
-            sapi.Event.ServerRunPhase(EnumServerRunPhase.ModsAndConfigReady, () => 
+            NoticeBoardModSystem.sapi = api;
+            NoticeBoardModSystem.sapi.Event.ServerRunPhase(EnumServerRunPhase.ModsAndConfigReady, delegate ()
             {
-                LoadConfig();
-                LoadDatabase();
+                this.LoadConfig();
+                NoticeBoardModSystem.LoadDatabase();
                 new ServerMessageHandler().SetMessageHandlers();
             });
-        }
 
-       
+
+        }
     }
 }
