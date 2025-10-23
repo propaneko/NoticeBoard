@@ -19,6 +19,8 @@ namespace NoticeBoard.Events
             NoticeBoardModSystem.getSAPI().Network.GetChannel("noticeboard").SetMessageHandler<PlayerRemoveMessage>(OnPlayerRemoveMessage);
             NoticeBoardModSystem.getSAPI().Network.GetChannel("noticeboard").SetMessageHandler<PlayerDestroyNoticeBoard>(OnPlayerDestroyNoticeBoard);
             NoticeBoardModSystem.getSAPI().Network.GetChannel("noticeboard").SetMessageHandler<PlayerCreateNoticeBoard>(OnPlayerCreateNoticeBoard);
+            NoticeBoardModSystem.getSAPI().Network.GetChannel("noticeboard").SetMessageHandler<EditIsLocked>(OnPlayerEditIsLocked);
+
         }
 
         private void OnPlayerDestroyNoticeBoard(IServerPlayer player, PlayerDestroyNoticeBoard packet)
@@ -40,6 +42,11 @@ namespace NoticeBoard.Events
         private void OnPlayerEditMessage(IServerPlayer player, PlayerEditMessage packet)
         {
             db.EditMessageById(packet.Id, packet.Message);
+        }
+
+        private void OnPlayerEditIsLocked(IServerPlayer player, EditIsLocked packet)
+        {
+            db.EditIsLocked(packet);
         }
 
         private void OnPlayerSendMessage(IServerPlayer player, PlayerSendMessage packet)
@@ -67,11 +74,12 @@ namespace NoticeBoard.Events
             List<Message> messages = db.GetAllMessages(packet.BoardId);
             messages.Reverse();
 
+            NoticeBoardObject tableProperties = db.GetBoardData(packet.BoardId);
+
             ResponseAllMessages responsePacket = new ResponseAllMessages
             {
-                BoardId = packet.BoardId,
-                PlayerId = packet.PlayerId,
-                Messages = messages
+                Messages = messages,
+                BoardProperties = tableProperties
             };
 
             NoticeBoardModSystem.getSAPI().Network.GetChannel("noticeboard").SendPacket(responsePacket, player);

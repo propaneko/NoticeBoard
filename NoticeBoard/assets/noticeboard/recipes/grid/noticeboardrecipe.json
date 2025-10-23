@@ -1,35 +1,54 @@
-{
-  "ingredientPattern": "NH_,WPW,SSS",
-  "width": 3,
-  "height": 3,
-  "ingredients": {
-    "N": {
-      "type": "item",
-      "code": "game:metalnailsandstrips-*"
+[
+  {
+    "ingredientPattern": "NH_,WPW,SSS",
+    "width": 3,
+    "height": 3,
+    "ingredients": {
+      "N": {
+        "type": "item",
+        "code": "game:metalnailsandstrips-*"
+      },
+      "P": {
+        "type": "item",
+        "code": "game:paper-parchment",
+        "quantity": 6
+      },
+      "W": {
+        "type": "block",
+        "code": "game:planks-*",
+        "quantity": 3
+      },
+      "S": {
+        "type": "block",
+        "code": "game:supportbeam-*",
+        "quantity": 2
+      },
+      "H": {
+        "type": "item",
+        "code": "game:hammer-*",
+        "isTool": true
+      }
     },
-    "P": {
-      "type": "item",
-      "code": "game:paper-parchment",
-      "quantity": 6
-    },
-    "W": {
+    "output": {
       "type": "block",
-      "code": "game:planks-*",
-      "quantity": 3
+      "code": "noticeboard:noticeboard-0-ground-north"
     },
-    "S": {
-      "type": "block",
-      "code": "game:supportbeam-*",
-      "quantity": 2
-    },
-    "H": {
-      "type": "item",
-      "code": "game:hammer-*",
-      "isTool": true
-    }
+
   },
-  "output": {
-    "type": "block",
-    "code": "noticeboard:noticeboard-0-north"
+  {
+    "ingredientPattern": "N",
+    "width": 1,
+    "height": 1,
+    "ingredients": {
+      "N": {
+        "type": "block",
+        "code": "noticeboard:noticeboard-*"
+      },
+    
+    },
+    "output": {
+      "type": "block",
+      "code": "noticeboard:noticeboard-0-ground-north"
+    }
   }
-}
+]

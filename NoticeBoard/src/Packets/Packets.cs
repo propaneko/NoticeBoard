@@ -19,6 +19,8 @@ namespace NoticeBoard.Packets
         [ProtoMember(1)]
         public string BoardId { get; set; }
         [ProtoMember(2)]
+        public string PlayerId { get; set; }
+        [ProtoMember(3)]
         public string Pos { get; set; }
     }
 
@@ -68,11 +70,20 @@ namespace NoticeBoard.Packets
     public class ResponseAllMessages
     {
         [ProtoMember(1)]
-        public string BoardId { get; internal set; }
-        [ProtoMember(2)]
-        public string PlayerId { get; set; }
-        [ProtoMember(3)]
         public List<Message> Messages { get; internal set; }
+
+        [ProtoMember(2)]
+        public NoticeBoardObject BoardProperties { get; set; }
+    }
+
+    [ProtoContract]
+    public class EditIsLocked
+    {
+        [ProtoMember(1)]
+        public string BoardId { get; set; }
+
+        [ProtoMember(2)]
+        public bool isLocked { get; set; }
     }
 
     [ProtoContract]
@@ -89,8 +100,15 @@ namespace NoticeBoard.Packets
     {
         [ProtoMember(1)]
         public string BoardId { get; set; }
+
         [ProtoMember(2)]
+        public string PlayerId { get; set; }
+
+        [ProtoMember(3)]
         public string Pos { get; set; }
+
+        [ProtoMember(4)]
+        public int isLocked { get; set; }
     }
 
 

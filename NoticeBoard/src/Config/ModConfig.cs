@@ -7,6 +7,5 @@ namespace NoticeBoard.Configs
         public int ProximityMessageDistance = 100;
         public double DivisionForPapersOnBoard = 1;
         public string ProximityGroupName = "Proximity";
-
     }
 }

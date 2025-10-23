@@ -10,6 +10,8 @@ public class NoticeBoardBlockEntity : BlockEntity
     public string uniqueID;
     private ICoreAPI api;
     private double actionInterval = 1;
+    private long listener;
+
 
     public override void Initialize(ICoreAPI api)
     {
@@ -17,14 +19,13 @@ public class NoticeBoardBlockEntity : BlockEntity
         this.api = api;
 
         if (!Api.World.Side.IsServer()) return;
+        listener = RegisterGameTickListener(OnPerformAction, (int)(actionInterval * 500));
+    }
 
-        if (uniqueID == null)
-        {
-            uniqueID = System.Guid.NewGuid().ToString();
-        }
-
-        RegisterGameTickListener(OnPerformAction, (int)(actionInterval * 500));
-
+    public string GenerateUniqueID()
+    {
+        uniqueID = System.Guid.NewGuid().ToString();
+        return uniqueID;
     }
 
     private void OnPerformAction(float dt)
@@ -39,6 +40,12 @@ public class NoticeBoardBlockEntity : BlockEntity
         {
             myBlock.ChangeBlockShape(Api.World, Pos, (int)(messageCount == 1 ? messageCount : divisionMessageNumbers));
         }
+    }
+
+    public override void OnBlockRemoved()
+    {
+        UnregisterGameTickListener(listener);
+        base.OnBlockRemoved();
     }
 
     public override void FromTreeAttributes(ITreeAttribute tree, IWorldAccessor worldAccessForResolve)

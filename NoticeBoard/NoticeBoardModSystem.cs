@@ -88,7 +88,17 @@ namespace NoticeBoard
             base.Start(api);
             api.RegisterBlockClass("NoticeBoardBlock", typeof(NoticeBoardBlock));
             api.RegisterBlockEntityClass("NoticeBoardBlockEntity", typeof(NoticeBoardBlockEntity));
-            api.Network.RegisterChannel("noticeboard").RegisterMessageType(typeof(RequestAllMessages)).RegisterMessageType(typeof(ResponseIsActive)).RegisterMessageType(typeof(ResponseAllMessages)).RegisterMessageType(typeof(RefreshNoticeBoard)).RegisterMessageType(typeof(PlayerSendMessage)).RegisterMessageType(typeof(PlayerEditMessage)).RegisterMessageType(typeof(PlayerDestroyNoticeBoard)).RegisterMessageType(typeof(PlayerCreateNoticeBoard)).RegisterMessageType(typeof(PlayerRemoveMessage));
+            api.Network.RegisterChannel("noticeboard")
+                .RegisterMessageType(typeof(RequestAllMessages))
+                .RegisterMessageType(typeof(ResponseIsActive))
+                .RegisterMessageType(typeof(ResponseAllMessages))
+                .RegisterMessageType(typeof(RefreshNoticeBoard))
+                .RegisterMessageType(typeof(PlayerSendMessage))
+                .RegisterMessageType(typeof(PlayerEditMessage))
+                .RegisterMessageType(typeof(PlayerDestroyNoticeBoard))
+                .RegisterMessageType(typeof(PlayerCreateNoticeBoard))
+                .RegisterMessageType(typeof(EditIsLocked))
+                .RegisterMessageType(typeof(PlayerRemoveMessage));
         }
 
         public override void StartClientSide(ICoreClientAPI api)

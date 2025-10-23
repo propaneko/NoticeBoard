@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Microsoft.Data.Sqlite;
 using NoticeBoard;
 using NoticeBoard.Packets;
@@ -22,7 +23,15 @@ public class SQLiteHandler
                 command.Parameters.AddWithValue("@playerName", playerName);
                 command.ExecuteNonQuery();
             }
+        }
+        catch (Exception e)
+        {
+            NoticeBoardModSystem.getSAPI().Logger.Error($"Couldnt insertPlayerQuery message: {e.Message}");
+        }
 
+        try
+        {
+            SQLiteDatabase.TryOpenConnection();
             string insertQuery = "INSERT INTO messages (message, boardId, playerId) VALUES (@message, @boardId, @playerId)";
             using (var command = new SqliteCommand(insertQuery, SQLiteConnection))
             {
@@ -31,16 +40,18 @@ public class SQLiteHandler
                 command.Parameters.AddWithValue("@playerId", packet.PlayerId);
                 command.ExecuteNonQuery();
             }
-        } catch
-        {
-            NoticeBoardModSystem.getSAPI().Logger.Error("Couldnt send message");
         }
-        
+        catch (Exception e)
+        {
+            NoticeBoardModSystem.getSAPI().Logger.Error($"Couldnt insertQuery message: {e.Message}, {packet.BoardId} {packet.PlayerId} ");
+        }
+
     }
 
     public void EditMessageById(int id, string message)
     {
-        this.SQLiteDatabase.TryOpenConnection();
+        SQLiteDatabase.TryOpenConnection();
+
         try
         {
             using (SqliteCommand sqliteCommand = new SqliteCommand("UPDATE messages SET message = @message WHERE id = @id", this.SQLiteConnection))
@@ -49,9 +60,9 @@ public class SQLiteHandler
                 sqliteCommand.Parameters.AddWithValue("@message", message);
                 sqliteCommand.ExecuteNonQuery();
             }
-        } catch
+        } catch (Exception e)
         {
-            NoticeBoardModSystem.getSAPI().Logger.Error("Couldnt edit message");
+            NoticeBoardModSystem.getSAPI().Logger.Error($"Couldnt EditMessageById message: {e.Message}");
         }
        
     }
@@ -60,13 +71,41 @@ public class SQLiteHandler
     {
         SQLiteDatabase.TryOpenConnection();
 
-        string insertQuery = "INSERT OR IGNORE INTO noticeBoard (boardId, pos) VALUES (@boardId, @pos)";
-        using (var command = new SqliteCommand(insertQuery, SQLiteConnection))
+        try
         {
-            command.Parameters.AddWithValue("@boardId", packet.BoardId);
-            command.Parameters.AddWithValue("@pos", packet.Pos);
+            string insertQuery = "INSERT OR IGNORE INTO noticeBoard (boardId, playerId, pos, isLocked) VALUES (@boardId, @playerId, @pos, @isLocked)";
+            using (var command = new SqliteCommand(insertQuery, SQLiteConnection))
+            {
+                command.Parameters.AddWithValue("@boardId", packet.BoardId);
+                command.Parameters.AddWithValue("@playerId", packet.PlayerId);
+                command.Parameters.AddWithValue("@pos", packet.Pos);
+                command.Parameters.AddWithValue("@isLocked", 0);
+                command.ExecuteNonQuery();
+            }
+        }
+        catch (Exception e)
+        {
+            NoticeBoardModSystem.getSAPI().Logger.Error($"Couldnt CreateNoticeBoard message: {e.Message}");
+        }
+    }
 
-            command.ExecuteNonQuery();
+    public void EditIsLocked(EditIsLocked packet)
+    {
+        SQLiteDatabase.TryOpenConnection();
+
+        try
+        {
+            string insertQuery = "UPDATE noticeBoard SET isLocked = @isLocked WHERE boardId = @boardId";
+            using (var command = new SqliteCommand(insertQuery, SQLiteConnection))
+            {
+                command.Parameters.AddWithValue("@boardId", packet.BoardId);
+                command.Parameters.AddWithValue("@isLocked", packet.isLocked ? 1 : 0);
+                command.ExecuteNonQuery();
+            }
+        }
+        catch (Exception e)
+        {
+            NoticeBoardModSystem.getSAPI().Logger.Error($"Couldnt CreateNoticeBoard message: {e.Message}");
         }
     }
 
@@ -74,35 +113,57 @@ public class SQLiteHandler
     {
         SQLiteDatabase.TryOpenConnection();
 
-        string deleteNoticeBoardAndMessages = "DELETE FROM noticeBoard WHERE boardId = @boardId;";
-        using (var command = new SqliteCommand(deleteNoticeBoardAndMessages, SQLiteConnection))
+        try
         {
-            command.Parameters.AddWithValue("@boardId", boardId);
-            command.ExecuteNonQuery();
+            string deleteNoticeBoardAndMessages = "DELETE FROM noticeBoard WHERE boardId = @boardId;";
+            using (var command = new SqliteCommand(deleteNoticeBoardAndMessages, SQLiteConnection))
+            {
+                command.Parameters.AddWithValue("@boardId", boardId);
+                command.ExecuteNonQuery();
+
+            }
         }
+        catch (Exception e)
+        {
+            NoticeBoardModSystem.getSAPI().Logger.Error($"Couldnt DeleteNoticeBoard message: {e.Message}");
+        }
+
+      
     }
 
     public NoticeBoardObject GetBoardData(string boardId)
     {
         SQLiteDatabase.TryOpenConnection();
 
-        NoticeBoardObject noticeBoard = new NoticeBoardObject();
-
-        string selectQuery = "SELECT boardId, pos FROM noticeBoard WHERE boardId = @boardId";
-        using (var command = new SqliteCommand(selectQuery, SQLiteConnection))
+        try
         {
-            command.Parameters.AddWithValue("@boardId", boardId);
-            using (var reader = command.ExecuteReader())
+            NoticeBoardObject noticeBoard = new NoticeBoardObject();
+
+            string selectQuery = "SELECT boardId, playerId, pos, isLocked FROM noticeBoard WHERE boardId = @boardId";
+            using (var command = new SqliteCommand(selectQuery, SQLiteConnection))
             {
-                while (reader.Read())
+                command.Parameters.AddWithValue("@boardId", boardId);
+                using (var reader = command.ExecuteReader())
                 {
-                    noticeBoard.BoardId = reader.GetString(0);
-                    noticeBoard.Pos = reader.GetString(1);
+                    while (reader.Read())
+                    {
+                        noticeBoard.BoardId = reader.GetString(0);
+                        noticeBoard.PlayerId = reader.GetString(1);
+                        noticeBoard.Pos = reader.GetString(2);
+                        noticeBoard.isLocked = reader.GetInt16(3);
+                    }
                 }
             }
-        }
 
-        return noticeBoard;
+
+            return noticeBoard;
+        }
+        catch (Exception e)
+        {
+            NoticeBoardModSystem.getSAPI().Logger.Error($"Couldn't GetBoardData message: {e.Message}");
+            return null;
+        }
+        
     }
 
     public List<Message> GetAllMessages(string boardId)
@@ -130,6 +191,7 @@ public class SQLiteHandler
             }
         }
 
+
         return messages;
     }
 
@@ -151,6 +213,7 @@ public class SQLiteHandler
             }
         }
 
+
         return rowCount;
     }
 
@@ -163,5 +226,6 @@ public class SQLiteHandler
             command.Parameters.AddWithValue("@id", id);
             command.ExecuteNonQuery();
         }
+
     }
 }

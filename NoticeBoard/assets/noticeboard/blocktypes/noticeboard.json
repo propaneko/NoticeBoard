@@ -1,183 +1,356 @@
 {
-	"code": "noticeboard",
-	"class": "NoticeBoardBlock",
-	"entityClass": "NoticeBoardBlockEntity",
-	"creativeinventory": {
-		"general": [ "*0-north" ]
-	},
-	"variantGroups": [
-		{
-			"code": "messageCount",
-			"states": [ "0", "1", "2", "3", "4", "5", "6" ]
-		},
-		{
-			"code": "side",
-			"loadFromProperties": "abstract/horizontalorientation"
-		}
-	],
-	"behaviors": [
-		{
-			"name": "HorizontalOrientable"
-		},
-		{
-			"name": "Multiblock",
-			"propertiesByType": {
-				"*-north": {
-					"sizex": 3,
-					"sizey": 3,
-					"sizez": 1,
-					"cposition": {
-						"x": 0,
-						"y": 0,
-						"z": 0
-					}
-				},
-				"*-east": {
-					"sizex": 1,
-					"sizey": 3,
-					"sizez": 3,
-					"cposition": {
-						"x": 0,
-						"y": 0,
-						"z": 0
-					}
-				},
-				"*-south": {
-					"sizex": 3,
-					"sizey": 3,
-					"sizez": 1,
-					"cposition": {
-						"x": 2,
-						"y": 0,
-						"z": 0
-					}
-				},
-				"*-west": {
-					"sizex": 1,
-					"sizey": 3,
-					"sizez": 3,
-					"cposition": {
-						"x": 0,
-						"y": 0,
-						"z": 2
-					}
-				}
-			}
-		}
-	],
-	"selectionBoxByType": {
-		"*-north": {
-			"x1": 0.0,
-			"y1": 0.0,
-			"z1": 0.3,
-			"x2": 1.0,
-			"y2": 1.0,
-			"z2": 0.7 // North-facing selection box
-		},
-		"*-east": {
-			"x1": 0.3,
-			"y1": 0.0,
-			"z1": 0.0,
-			"x2": 0.7,
-			"y2": 1.0,
-			"z2": 1.0 // East-facing selection box
-		},
-		"*-south": {
-			"x1": 0.0,
-			"y1": 0.0,
-			"z1": 0.3,
-			"x2": 1.0,
-			"y2": 1.0,
-			"z2": 0.7 // North-facing selection box
-		},
-		"*-west": {
-			"x1": 0.3,
-			"y1": 0.0,
-			"z1": 0.0,
-			"x2": 0.7,
-			"y2": 1.0,
-			"z2": 1.0 // East-facing selection box
-		}
-	},
-	"maxstacksize": 1,
-	"drawtype": "json",
-	"blockmaterial": "Wood",
-	"replaceable": 600,
-	"resistance": 3,
-	"flammable": true,
-	"snowcoverage": true,
-	"combustibleprops": {
-		"burntemperature": 5, // Temperature at which the block ignites (0 means not flammable)
-		"burnduration": 15, // How long the block burns for (0 means it doesn't burn)
-		"smokelevel": 1 // Amount of smoke generated while burning
-	},
-	"sideopaque": {
-		"all": false
-	},
-	"sideao": {
-		"all": true
-	},
-	"emitsideao": {
-		"all": false
-	},
-	"sidesolid": {
-		"all": false
-	},
-	"heldTpIdleAnimation": "holdbothhands",
-	"heldTpUseAnimation": "twohandplaceblock",
-	"sounds": {
-		"walk": "game:player/buildhigh"
-	},
-	"shape": {
-		"base": "item/noticeboard{messageCount}",
-		"rotateYByType": {
-			"*-north": 0,
-			"*-east": 270,
-			"*-south": 180,
-			"*-west": 90
-		}
-	},
-	"textures": {
-		"aged-h": { "base": "block/bark/aged-h" },
-		"agedbark": { "base": "block/bark/agedbark" },
-		"ageddebarked": { "base": "block/debarked/ageddebarked" },
-		"agedp-h": { "base": "block/debarked/agedp-h" },
-		"agedp-h96x64": { "base": "block/debarked/agedp-h96x64" },
-		"paperlabel": { "base": "block/notice/paperlabel" },
-		"paperlabel1": { "base": "block/notice/paperlabel1" },
-		"paperlabel2": { "base": "block/notice/paperlabel2" },
-		"paperlabel3": { "base": "block/notice/paperlabel3" },
-		"paperlabel4": { "base": "block/notice/paperlabel4" },
-		"paperlabelsample": { "base": "block/notice/paperlabelsample" },
-		"paperlabelsample5": { "base": "block/notice/paperlabelsample5" },
-		"brass": { "base": "block/plate/brass" },
-		"iron": { "base": "block/plate/iron" },
-		"steel": { "base": "block/plate/steel" }
-	},
-	"tpHandTransform": {
-		"translation": {
-			"x": 0,
-			"y": -2,
-			"z": -1
-		},
-		"rotation": {
-			"x": 132,
-			"y": -5,
-			"z": -73
-		},
-		"scale": 0.48
-	},
-	"guiTransform": {
-		"translation": {
-			"x": 9,
-			"y": 7.5,
-			"z": 0
-		},
-		"rotation": {
-			"x": -29,
-			"y": 147,
-			"z": 0
-		},
-		"scale": 0.4
-	}
+  "code": "noticeboard",
+  "class": "NoticeBoardBlock",
+  "entityClass": "NoticeBoardBlockEntity",
+  "creativeinventory": {
+    "general": [ "*0-ground-north" ]
+  },
+  "variantGroups": [
+    {
+      "code": "messageCount",
+      "states": [ "0", "1", "2", "3", "4", "5", "6" ]
+    },
+    {
+      "code": "attachment",
+      "states": [ "ground", "wall" ]
+    },
+    {
+      "code": "side",
+      "loadFromProperties": "abstract/horizontalorientation"
+    }
+  ],
+  "behaviorsByType": {
+    "*-wall-*": [
+      {
+        "name": "Multiblock",
+        "propertiesByType": {
+          "*-north": {
+            "sizex": 3,
+            "sizey": 2,
+            "sizez": 1,
+            "cposition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "*-east": {
+            "sizex": 1,
+            "sizey": 2,
+            "sizez": 3,
+            "cposition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "*-south": {
+            "sizex": 3,
+            "sizey": 2,
+            "sizez": 1,
+            "cposition": {
+              "x": 2,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "*-west": {
+            "sizex": 1,
+            "sizey": 2,
+            "sizez": 3,
+            "cposition": {
+              "x": 0,
+              "y": 0,
+              "z": 2
+            }
+          }
+        }
+      }
+    ],
+    "*-ground-*": [
+      {
+        "name": "Multiblock",
+        "propertiesByType": {
+          "*-north": {
+            "sizex": 3,
+            "sizey": 3,
+            "sizez": 1,
+            "cposition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "*-east": {
+            "sizex": 1,
+            "sizey": 3,
+            "sizez": 3,
+            "cposition": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "*-south": {
+            "sizex": 3,
+            "sizey": 3,
+            "sizez": 1,
+            "cposition": {
+              "x": 2,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "*-west": {
+            "sizex": 1,
+            "sizey": 3,
+            "sizez": 3,
+            "cposition": {
+              "x": 0,
+              "y": 0,
+              "z": 2
+            }
+          }
+        }
+      }
+    ]
+  },
+  "collisionBoxByType": {
+    "*-ground-north": {
+      "x1": 0.0,
+      "y1": 0.0,
+      "z1": 0.3,
+      "x2": 1.0,
+      "y2": 1.0,
+      "z2": 0.7 // North-facing selection box
+    },
+    "*-ground-east": {
+      "x1": 0.3,
+      "y1": 0.0,
+      "z1": 0.0,
+      "x2": 0.7,
+      "y2": 1.0,
+      "z2": 1.0 // East-facing selection box
+    },
+    "*-ground-south": {
+      "x1": 0.0,
+      "y1": 0.0,
+      "z1": 0.3,
+      "x2": 1.0,
+      "y2": 1.0,
+      "z2": 0.7 // North-facing selection box
+    },
+    "*-ground-west": {
+      "x1": 0.3,
+      "y1": 0.0,
+      "z1": 0.0,
+      "x2": 0.7,
+      "y2": 1.0,
+      "z2": 1.0 // East-facing selection box
+    },
+    "*-wall-north": {
+      "x1": 0.0,
+      "y1": 0.0,
+      "z1": 0.3,
+      "x2": 1.0,
+      "y2": 1.0,
+      "z2": -0.7 // North-facing selection box
+    },
+    "*-wall-east": {
+      "x1": 1.3,
+      "y1": 0.0,
+      "z1": 0.0,
+      "x2": 0.7,
+      "y2": 1.0,
+      "z2": 1.0 // East-facing selection box
+    },
+    "*-wall-south": {
+      "x1": 0.0,
+      "y1": 0.0,
+      "z1": 1.3,
+      "x2": 1.0,
+      "y2": 1.0,
+      "z2": 0.7 // North-facing selection box
+    },
+    "*-wall-west": {
+      "x1": 0.3,
+      "y1": 0.0,
+      "z1": 0.0,
+      "x2": -0.7,
+      "y2": 1.0,
+      "z2": 1.0 // East-facing selection box
+    }
+  },
+  "selectionBoxByType": {
+    "*-ground-north": {
+      "x1": 0.0,
+      "y1": 0.0,
+      "z1": 0.3,
+      "x2": 1.0,
+      "y2": 1.0,
+      "z2": 0.7 // North-facing selection box
+    },
+    "*-ground-east": {
+      "x1": 0.3,
+      "y1": 0.0,
+      "z1": 0.0,
+      "x2": 0.7,
+      "y2": 1.0,
+      "z2": 1.0 // East-facing selection box
+    },
+    "*-ground-south": {
+      "x1": 0.0,
+      "y1": 0.0,
+      "z1": 0.3,
+      "x2": 1.0,
+      "y2": 1.0,
+      "z2": 0.7 // North-facing selection box
+    },
+    "*-ground-west": {
+      "x1": 0.3,
+      "y1": 0.0,
+      "z1": 0.0,
+      "x2": 0.7,
+      "y2": 1.0,
+      "z2": 1.0 // East-facing selection box
+    },
+    "*-wall-north": {
+      "x1": 0.0,
+      "y1": 0.0,
+      "z1": 0.3,
+      "x2": 1.0,
+      "y2": 1.0,
+      "z2": -0.7 // North-facing selection box
+    },
+    "*-wall-east": {
+      "x1": 1.3,
+      "y1": 0.0,
+      "z1": 0.0,
+      "x2": 0.7,
+      "y2": 1.0,
+      "z2": 1.0 // East-facing selection box
+    },
+    "*-wall-south": {
+      "x1": 0.0,
+      "y1": 0.0,
+      "z1": 1.3,
+      "x2": 1.0,
+      "y2": 1.0,
+      "z2": 0.7 // North-facing selection box
+    },
+    "*-wall-west": {
+      "x1": 0.3,
+      "y1": 0.0,
+      "z1": 0.0,
+      "x2": -0.7,
+      "y2": 1.0,
+      "z2": 1.0 // East-facing selection box
+    }
+  },
+  "maxstacksize": 1,
+  "drawtype": "json",
+  "blockmaterial": "Wood",
+  "replaceable": 600,
+  "resistance": 3,
+  "flammable": true,
+  "snowcoverage": true,
+  "combustibleprops": {
+    "burntemperature": 5, // Temperature at which the block ignites (0 means not flammable)
+    "burnduration": 15, // How long the block burns for (0 means it doesn't burn)
+    "smokelevel": 1 // Amount of smoke generated while burning
+  },
+  "sideopaque": {
+    "all": false
+  },
+  "sideao": {
+    "all": true
+  },
+  "emitsideao": {
+    "all": false
+  },
+  "sidesolid": {
+    "all": false
+  },
+  "heldTpIdleAnimation": "holdbothhands",
+  "heldTpUseAnimation": "twohandplaceblock",
+  "sounds": {
+    "walk": "game:player/buildhigh"
+  },
+  "shapebytype": {
+    "*-ground-north": {
+      "base": "block/noticeboard-ground-{messageCount}",
+      "rotateY": 0
+    },
+    "*-ground-east": {
+      "base": "block/noticeboard-ground-{messageCount}",
+      "rotateY": 270
+    },
+    "*-ground-south": {
+      "base": "block/noticeboard-ground-{messageCount}",
+      "rotateY": 180
+    },
+    "*-ground-west": {
+      "base": "block/noticeboard-ground-{messageCount}",
+      "rotateY": 90
+    },
+    "*-wall-north": {
+      "base": "block/noticeboard-wall-{messageCount}",
+      "rotateY": 0
+    },
+    "*-wall-east": {
+      "base": "block/noticeboard-wall-{messageCount}",
+      "rotateY": 270
+    },
+    "*-wall-south": {
+      "base": "block/noticeboard-wall-{messageCount}",
+      "rotateY": 180
+    },
+    "*-wall-west": {
+      "base": "block/noticeboard-wall-{messageCount}",
+      "rotateY": 90
+    }
+  },
+  "textures": {
+    "aged-h": { "base": "block/bark/aged-h" },
+    "agedbark": { "base": "block/bark/agedbark" },
+    "ageddebarked": { "base": "block/debarked/ageddebarked" },
+    "agedp-h": { "base": "block/debarked/agedp-h" },
+    "agedp-h96x64": { "base": "block/debarked/agedp-h96x64" },
+    "paperlabel": { "base": "block/notice/paperlabel" },
+    "paperlabel1": { "base": "block/notice/paperlabel1" },
+    "paperlabel2": { "base": "block/notice/paperlabel2" },
+    "paperlabel3": { "base": "block/notice/paperlabel3" },
+    "paperlabel4": { "base": "block/notice/paperlabel4" },
+    "paperlabelsample": { "base": "block/notice/paperlabelsample" },
+    "paperlabelsample5": { "base": "block/notice/paperlabelsample5" },
+    "brass": { "base": "block/plate/brass" },
+    "iron": { "base": "block/plate/iron" },
+    "steel": { "base": "block/plate/steel" }
+  },
+  "tpHandTransform": {
+    "translation": {
+      "x": 0,
+      "y": -2,
+      "z": -1
+    },
+    "rotation": {
+      "x": 132,
+      "y": -5,
+      "z": -73
+    },
+    "scale": 0.48
+  },
+  "guiTransform": {
+    "translation": {
+      "x": 9,
+      "y": 7.5,
+      "z": 0
+    },
+    "rotation": {
+      "x": -29,
+      "y": 147,
+      "z": 0
+    },
+    "scale": 0.4
+  }
 }

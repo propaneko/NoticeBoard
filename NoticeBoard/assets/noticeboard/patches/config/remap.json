@@ -1,0 +1,37 @@
+﻿[
+  {
+    "file": "game:config/remaps.json",
+    "op": "add",
+    "path": "/noticeboard:Noticeboard-1.2.0",
+    "value": [
+      "/bir remap noticeboard:noticeboard-0-ground-north noticeboard:noticeboard-0-north force",
+      "/bir remap noticeboard:noticeboard-1-ground-north noticeboard:noticeboard-1-north force",
+      "/bir remap noticeboard:noticeboard-2-ground-north noticeboard:noticeboard-2-north force",
+      "/bir remap noticeboard:noticeboard-3-ground-north noticeboard:noticeboard-3-north force",
+      "/bir remap noticeboard:noticeboard-4-ground-north noticeboard:noticeboard-4-north force",
+      "/bir remap noticeboard:noticeboard-5-ground-north noticeboard:noticeboard-5-north force",
+      "/bir remap noticeboard:noticeboard-6-ground-north noticeboard:noticeboard-6-north force",
+      "/bir remap noticeboard:noticeboard-0-ground-east noticeboard:noticeboard-0-east force",
+      "/bir remap noticeboard:noticeboard-1-ground-east noticeboard:noticeboard-1-east force",
+      "/bir remap noticeboard:noticeboard-2-ground-east noticeboard:noticeboard-2-east force",
+      "/bir remap noticeboard:noticeboard-3-ground-east noticeboard:noticeboard-3-east force",
+      "/bir remap noticeboard:noticeboard-4-ground-east noticeboard:noticeboard-4-east force",
+      "/bir remap noticeboard:noticeboard-5-ground-east noticeboard:noticeboard-5-east force",
+      "/bir remap noticeboard:noticeboard-6-ground-east noticeboard:noticeboard-6-east force",
+      "/bir remap noticeboard:noticeboard-0-ground-south noticeboard:noticeboard-0-south force",
+      "/bir remap noticeboard:noticeboard-1-ground-south noticeboard:noticeboard-1-south force",
+      "/bir remap noticeboard:noticeboard-2-ground-south noticeboard:noticeboard-2-south force",
+      "/bir remap noticeboard:noticeboard-3-ground-south noticeboard:noticeboard-3-south force",
+      "/bir remap noticeboard:noticeboard-4-ground-south noticeboard:noticeboard-4-south force",
+      "/bir remap noticeboard:noticeboard-5-ground-south noticeboard:noticeboard-5-south force",
+      "/bir remap noticeboard:noticeboard-6-ground-south noticeboard:noticeboard-6-south force",
+      "/bir remap noticeboard:noticeboard-0-ground-west noticeboard:noticeboard-0-west force",
+      "/bir remap noticeboard:noticeboard-1-ground-west noticeboard:noticeboard-1-west force",
+      "/bir remap noticeboard:noticeboard-2-ground-west noticeboard:noticeboard-2-west force",
+      "/bir remap noticeboard:noticeboard-3-ground-west noticeboard:noticeboard-3-west force",
+      "/bir remap noticeboard:noticeboard-4-ground-west noticeboard:noticeboard-4-west force",
+      "/bir remap noticeboard:noticeboard-5-ground-west noticeboard:noticeboard-5-west force",
+      "/bir remap noticeboard:noticeboard-6-ground-west noticeboard:noticeboard-6-west force"
+    ]
+  }
+]

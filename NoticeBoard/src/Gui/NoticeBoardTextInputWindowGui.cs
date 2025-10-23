@@ -33,7 +33,7 @@ public class NoticeBoardTextInputWindowGui : GuiDialog
     private void Compose()
     {
         int insetWidth = 550;
-        int insetHeight = 75;
+        int insetHeight = 160;
         int insetDepth = 3;
         int rowHeight = 100;
         ElementBounds dialogBounds = ElementStdBounds.AutosizedMainDialog.WithAlignment((EnumDialogArea)7).WithFixedOffset(0.0, -120.0);
@@ -63,15 +63,9 @@ public class NoticeBoardTextInputWindowGui : GuiDialog
     private void OnTextChanged(string text)
     {
         string[] lines = text.Split('\n', StringSplitOptions.None);
-        int maxLines = 4;
-        if (lines.Length > maxLines)
+        if (text.Length > 560)
         {
-            string limitedText = string.Join("\n", lines.Take(maxLines));
-            GuiComposerHelpers.GetTextArea(base.SingleComposer, "messageInput").SetValue(limitedText, true);
-        }
-        if (text.Length > 292)
-        {
-            string limitedText2 = text.Substring(0, 292);
+            string limitedText2 = text.Substring(0, 560);
             GuiComposerHelpers.GetTextArea(base.SingleComposer, "messageInput").SetValue(limitedText2, true);
         }
     }
@@ -95,8 +89,8 @@ public class NoticeBoardTextInputWindowGui : GuiDialog
         PlayerSendMessage playerSendMessage = new PlayerSendMessage
         {
             Message = text2,
-            BoardId = this.noticeBoardPacket.BoardId,
-            PlayerId = this.noticeBoardPacket.PlayerId
+            BoardId = noticeBoardPacket.BoardProperties.BoardId,
+            PlayerId = capi.World.Player.PlayerUID
         };
         NoticeBoardModSystem.getCAPI().Network.GetChannel("noticeboard").SendPacket<PlayerSendMessage>(playerSendMessage);
         this.parentContext.GetMessages();
