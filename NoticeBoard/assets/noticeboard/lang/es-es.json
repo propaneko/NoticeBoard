@@ -1,0 +1,20 @@
+{
+  "// Notice Board v1.2.2 || Enlace de VS ModDB: https://mods.vintagestory.at/noticeboard ": "",
+  "// Traducido por C4BR3R4 || Última Modificación: 4/NOV/2025 || Registro de Cambios: http://c4br3r4.es/index.php?topic=1285.0 ": "",
+
+  "block-noticeboard-*": "Tablón de Anuncios",
+
+  "main-window-title-bar": "Tablón de Anuncios",
+  "main-window-add-notice-button": "Añadir",
+
+  "add-notice-window-title": "Escribe la Información",
+  "add-notice-window-pin-button": "Publicar",
+
+  "new-notice-proximity-message": "ha publicado en un Tablón de Anuncios cercano, el siguiente mensaje:",
+
+
+
+  "// Añadidas desde GitHub '/NoticeBoard/src/Gui/NoticeBoardMainWindowGui.cs' ": "",
+  "game:Lock": "Bloquear",
+  "game:Unlock": "Liberar"
+}
