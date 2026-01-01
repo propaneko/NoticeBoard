@@ -20,6 +20,8 @@ namespace NoticeBoard
         private static ICoreClientAPI capi;
         private static SQLiteDatabase databaseHandler;
         public static ModConfig config;
+        private SQLiteHandler db ;
+
         private const string ConfigName = "noticeboard.json";
 
         public NoticeBoardModSystem()
@@ -112,14 +114,25 @@ namespace NoticeBoard
         {
             base.StartServerSide(api);
             NoticeBoardModSystem.sapi = api;
+
             NoticeBoardModSystem.sapi.Event.ServerRunPhase(EnumServerRunPhase.ModsAndConfigReady, delegate ()
             {
                 this.LoadConfig();
                 NoticeBoardModSystem.LoadDatabase();
                 new ServerMessageHandler().SetMessageHandlers();
+                db = new SQLiteHandler();
             });
 
+           
 
+
+            NoticeBoardModSystem.sapi.Event.PlayerJoin += OnPlayerJoin;
+
+        }
+
+        private void OnPlayerJoin(IServerPlayer byPlayer)
+        {
+            db.AddPlayerToDatabase(byPlayer);
         }
     }
 }

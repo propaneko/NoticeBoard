@@ -11,6 +11,7 @@ public class NoticeBoardMainWindowGui : GuiDialog
 {
     private string boardId;
     private string boardPlayerId;
+    private string boardPlayerName;
 
     private List<Message> messages;
     private ResponseAllMessages noticeBoardPacket;
@@ -24,6 +25,8 @@ public class NoticeBoardMainWindowGui : GuiDialog
     {
         this.boardId = packet.BoardProperties.BoardId;
         this.boardPlayerId = packet.BoardProperties.PlayerId;
+        this.boardPlayerName = packet.BoardProperties.PlayerName;
+
         this.isLocked = packet.BoardProperties.isLocked == 0 ? false : true;
         this.messages = packet.Messages;
         this.noticeBoardPacket = packet;
@@ -213,7 +216,7 @@ public class NoticeBoardMainWindowGui : GuiDialog
 
         var dialogComposer = capi.Gui.CreateCompo("noticeBoardScrollGui", dialogBounds);
         var shadedBackground = GuiComposerHelpers.AddShadedDialogBG(dialogComposer, bgBounds, true, 5.0, 0.75f);
-        var titleBar = GuiComposerHelpers.AddDialogTitleBar(dialogComposer, Lang.Get("noticeboard:main-window-title-bar", Array.Empty<object>()), new Action(this.OnTitleBarClose), null, null);
+        var titleBar = GuiComposerHelpers.AddDialogTitleBar(dialogComposer, Lang.Get("noticeboard:main-window-title-bar") + $" - Owner: {this.boardPlayerName}", new Action(this.OnTitleBarClose), null, null);
         var insetContent = GuiElementInsetHelper.AddInset(dialogComposer, insetBounds, insetDepth, 0.85f);
         var clippedContent = GuiElementClipHelpler.BeginClip(dialogComposer, clipBounds);
         var contentContainer = GuiComposerHelpers.AddContainer(dialogComposer, containerBounds, "scroll-content");

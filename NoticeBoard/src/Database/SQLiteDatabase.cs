@@ -63,10 +63,18 @@ public class SQLiteDatabase
             );
         ";
 
-        using (var command = new SqliteCommand(createTableQuery, connection))
+        try
         {
-            command.ExecuteNonQuery();
+            using (var command = new SqliteCommand(createTableQuery, connection))
+            {
+                command.ExecuteNonQuery();
+            }
         }
+        catch (Exception e)
+        {
+            throw;
+        }
+      
     }
 
     private void MigrateDatabase()
@@ -84,6 +92,20 @@ public class SQLiteDatabase
         using (var command = new SqliteCommand(createSchemaVersionTable, connection))
         {
             command.ExecuteNonQuery();
+        }
+
+        bool dbWasInitialised = TableExists("players") && TableExists("noticeBoard") && TableExists("messages");
+        if (!dbWasInitialised)
+        {
+            NoticeBoardModSystem.getSAPI().Logger.Debug("[noticeboard] Database file exists but core tables are missing – skipping migration.");
+            // Ensure version row exists (so future migrations see version 0)
+            using (var cmd = new SqliteCommand(
+                       "INSERT OR IGNORE INTO schema_version (id, version, migration_date) VALUES (1, 1, @date);", connection))
+            {
+                cmd.Parameters.AddWithValue("@date", DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"));
+                cmd.ExecuteNonQuery();
+            }
+            return;
         }
 
         // Step 2: Check current schema version
@@ -214,6 +236,14 @@ public class SQLiteDatabase
         }
 
         NoticeBoardModSystem.getSAPI().Logger.Debug("[noticeboard] Database migration to version {0} completed successfully.", targetVersion);
+    }
+
+    private bool TableExists(string tableName)
+    {
+        const string sql = "SELECT name FROM sqlite_master WHERE type='table' AND name=@name;";
+        using var cmd = new SqliteCommand(sql, connection);
+        cmd.Parameters.AddWithValue("@name", tableName);
+        return cmd.ExecuteScalar() != null;
     }
 
     public void TryOpenConnection()

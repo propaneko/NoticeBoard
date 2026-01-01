@@ -1,8 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using NoticeBoard;
 using NoticeBoard.Packets;
+using System;
+using System.Collections.Generic;
+using Vintagestory.API.Server;
 
 namespace NoticeBoard.Database;
 public class SQLiteHandler
@@ -10,6 +11,25 @@ public class SQLiteHandler
     private readonly SQLiteDatabase SQLiteDatabase = NoticeBoardModSystem.getModInstance().getDatabaseHandler();
     private readonly SqliteConnection SQLiteConnection = NoticeBoardModSystem.getModInstance().getDatabaseHandler().getSQLiteConnection();
 
+    public void AddPlayerToDatabase(IServerPlayer byPlayer)
+    {
+        SQLiteDatabase.TryOpenConnection();
+
+        try
+        {
+            string insertPlayerQuery = "INSERT OR IGNORE INTO players (playerId, playerName) VALUES (@playerId, @playerName)";
+            using (var command = new SqliteCommand(insertPlayerQuery, SQLiteConnection))
+            {
+                command.Parameters.AddWithValue("@playerId", byPlayer.PlayerUID);
+                command.Parameters.AddWithValue("@playerName", byPlayer.PlayerName);
+                command.ExecuteNonQuery();
+            }
+        }
+        catch (Exception e)
+        {
+            NoticeBoardModSystem.getSAPI().Logger.Error($"Couldnt insertPlayerQuery message: {e.Message}");
+        }
+    }
     public void InsertMessage(PlayerSendMessage packet, string playerName)
     {
         SQLiteDatabase.TryOpenConnection();
@@ -31,7 +51,6 @@ public class SQLiteHandler
 
         try
         {
-            SQLiteDatabase.TryOpenConnection();
             string insertQuery = "INSERT INTO messages (message, boardId, playerId) VALUES (@message, @boardId, @playerId)";
             using (var command = new SqliteCommand(insertQuery, SQLiteConnection))
             {
@@ -151,6 +170,19 @@ public class SQLiteHandler
                         noticeBoard.PlayerId = reader.GetString(1);
                         noticeBoard.Pos = reader.GetString(2);
                         noticeBoard.isLocked = reader.GetInt16(3);
+                    }
+                }
+            }
+
+            string selectPlayerQuery = "SELECT playerName FROM players WHERE playerId = @playerId";
+            using (var command = new SqliteCommand(selectPlayerQuery, SQLiteConnection))
+            {
+                command.Parameters.AddWithValue("@playerId", noticeBoard.PlayerId);
+                using (var reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        noticeBoard.PlayerName = reader.GetString(0);
                     }
                 }
             }

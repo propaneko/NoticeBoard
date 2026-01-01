@@ -105,9 +105,12 @@ namespace NoticeBoard.Packets
         public string PlayerId { get; set; }
 
         [ProtoMember(3)]
-        public string Pos { get; set; }
+        public string PlayerName { get; set; }
 
         [ProtoMember(4)]
+        public string Pos { get; set; }
+
+        [ProtoMember(6)]
         public int isLocked { get; set; }
     }
 
