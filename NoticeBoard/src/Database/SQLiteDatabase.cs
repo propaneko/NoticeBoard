@@ -81,7 +81,6 @@ public class SQLiteDatabase
     {
         TryOpenConnection();
 
-        // Step 1: Create schema_version table if it doesn't exist
         string createSchemaVersionTable = @"
         CREATE TABLE IF NOT EXISTS schema_version (
             id INTEGER PRIMARY KEY,
@@ -98,7 +97,6 @@ public class SQLiteDatabase
         if (!dbWasInitialised)
         {
             NoticeBoardModSystem.getSAPI().Logger.Debug("[noticeboard] Database file exists but core tables are missing – skipping migration.");
-            // Ensure version row exists (so future migrations see version 0)
             using (var cmd = new SqliteCommand(
                        "INSERT OR IGNORE INTO schema_version (id, version, migration_date) VALUES (1, 1, @date);", connection))
             {
@@ -108,7 +106,6 @@ public class SQLiteDatabase
             return;
         }
 
-        // Step 2: Check current schema version
         int currentVersion = 0;
         string checkVersionQuery = "SELECT version FROM schema_version WHERE id = 1;";
         using (var command = new SqliteCommand(checkVersionQuery, connection))
@@ -120,18 +117,15 @@ public class SQLiteDatabase
             }
         }
 
-        // Step 3: If version is already 1, migration is complete, so exit
-        const int targetVersion = 1; // Increment this for future migrations
+        const int targetVersion = 1; 
         if (currentVersion >= targetVersion)
         {
             NoticeBoardModSystem.getSAPI().Logger.Debug("[noticeboard] Database is already at version {0}, no migration needed.", currentVersion);
             return;
         }
 
-        // Step 4: Perform migration
         NoticeBoardModSystem.getSAPI().Logger.Debug("[noticeboard] Starting database migration to version {0}.", targetVersion);
 
-        // Create temporary tables with the new schema
         string createTempTablesQuery = @"
         CREATE TABLE temp_players (
             playerId TEXT NOT NULL PRIMARY KEY,
@@ -160,29 +154,24 @@ public class SQLiteDatabase
             command.ExecuteNonQuery();
         }
 
-        // Migrate data to temporary tables
-        // Copy players
         string copyPlayersQuery = "INSERT INTO temp_players (playerId, playerName) SELECT playerId, playerName FROM players;";
         using (var command = new SqliteCommand(copyPlayersQuery, connection))
         {
             command.ExecuteNonQuery();
         }
 
-        // Insert a default 'unknown' player for noticeBoard migration
         string insertUnknownPlayer = "INSERT OR IGNORE INTO temp_players (playerId, playerName) VALUES ('unknown', 'Unknown Player');";
         using (var command = new SqliteCommand(insertUnknownPlayer, connection))
         {
             command.ExecuteNonQuery();
         }
 
-        // Copy noticeBoard, assigning default playerId ('unknown') and isLocked (0)
         string copyNoticeBoardQuery = "INSERT INTO temp_noticeBoard (boardId, playerId, pos, isLocked) SELECT boardId, 'unknown', pos, 0 FROM noticeBoard;";
         using (var command = new SqliteCommand(copyNoticeBoardQuery, connection))
         {
             command.ExecuteNonQuery();
         }
 
-        // Copy messages, ensuring playerId and boardId exist
         string copyMessagesQuery = @"
         INSERT INTO temp_messages (id, message, playerId, boardId)
         SELECT m.id, m.message, m.playerId, m.boardId
@@ -195,7 +184,6 @@ public class SQLiteDatabase
             command.ExecuteNonQuery();
         }
 
-        // Drop old tables
         string dropOldTablesQuery = @"
         DROP TABLE IF EXISTS messages;
         DROP TABLE IF EXISTS noticeBoard;
@@ -206,7 +194,6 @@ public class SQLiteDatabase
             command.ExecuteNonQuery();
         }
 
-        // Rename temporary tables
         string renameTablesQuery = @"
         ALTER TABLE temp_players RENAME TO players;
         ALTER TABLE temp_noticeBoard RENAME TO noticeBoard;
@@ -217,7 +204,6 @@ public class SQLiteDatabase
             command.ExecuteNonQuery();
         }
 
-        // Step 5: Update schema version
         string updateVersionQuery = @"
         INSERT OR REPLACE INTO schema_version (id, version, migration_date)
         VALUES (1, @version, @date);
@@ -229,7 +215,6 @@ public class SQLiteDatabase
             command.ExecuteNonQuery();
         }
 
-        // Ensure foreign keys are enabled
         using (var command = new SqliteCommand("PRAGMA foreign_keys = ON;", connection))
         {
             command.ExecuteNonQuery();

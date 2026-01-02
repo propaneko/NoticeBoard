@@ -7,7 +7,7 @@
   ],
   "side": "universal",
   "description": "Notice board where you can post and read players notices.",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "dependencies": {
     "game": ""
   }
