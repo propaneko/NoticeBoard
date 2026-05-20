@@ -22,8 +22,6 @@ namespace NoticeBoard
         public static ModConfig config;
         private SQLiteHandler db ;
 
-        private const string ConfigName = "noticeboard.json";
-
         public NoticeBoardModSystem()
         {
             NoticeBoardModSystem.modInstance = this;
@@ -100,6 +98,10 @@ namespace NoticeBoard
                 .RegisterMessageType(typeof(PlayerDestroyNoticeBoard))
                 .RegisterMessageType(typeof(PlayerCreateNoticeBoard))
                 .RegisterMessageType(typeof(EditIsLocked))
+                .RegisterMessageType(typeof(EditEnableParticles))
+                .RegisterMessageType(typeof(EditEnableParchment))
+                .RegisterMessageType(typeof(RequestAllPlayers))
+                .RegisterMessageType(typeof(ResponseAllPlayers))
                 .RegisterMessageType(typeof(PlayerRemoveMessage));
         }
 
@@ -120,19 +122,15 @@ namespace NoticeBoard
                 this.LoadConfig();
                 NoticeBoardModSystem.LoadDatabase();
                 new ServerMessageHandler().SetMessageHandlers();
-                db = new SQLiteHandler();
             });
 
-           
-
-
             NoticeBoardModSystem.sapi.Event.PlayerJoin += OnPlayerJoin;
-
         }
 
         private void OnPlayerJoin(IServerPlayer byPlayer)
         {
-            db.AddPlayerToDatabase(byPlayer);
+            db = new SQLiteHandler();
+            db.AddPlayerToDatabase(byPlayer.PlayerUID, byPlayer.PlayerName);
         }
     }
 }

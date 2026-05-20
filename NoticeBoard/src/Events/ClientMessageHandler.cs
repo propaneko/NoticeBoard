@@ -10,6 +10,7 @@ namespace NoticeBoard.Events
         public void SetMessageHandlers()
         {
             NoticeBoardModSystem.getCAPI().Network.GetChannel("noticeboard").SetMessageHandler<ResponseAllMessages>(OnServerMessagesReceived);
+            NoticeBoardModSystem.getCAPI().Network.GetChannel("noticeboard").SetMessageHandler<ResponseAllPlayers>(OnPlayersReceived);
         }
 
         private void OnServerMessagesReceived(ResponseAllMessages packet)
@@ -21,6 +22,13 @@ namespace NoticeBoard.Events
             }
 
             messageBoardGui.UpdateMessages(packet.Messages);
+            NoticeBoardModSystem.getCAPI().Network.GetChannel("noticeboard").SendPacket(new RequestAllPlayers());
+
+        }
+
+        private void OnPlayersReceived(ResponseAllPlayers packet)
+        {
+            messageBoardGui.UpdatePlayersList(packet.Players);
         }
     }
 }

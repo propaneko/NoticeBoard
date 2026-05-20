@@ -7,7 +7,6 @@ using Vintagestory.API.Config;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Util;
-using Vintagestory.GameContent;
 
 namespace NoticeBoard.BlockType;
 public class NoticeBoardBlock : Block
@@ -100,7 +99,6 @@ public class NoticeBoardBlock : Block
 
             float deg45 = GameMath.PIHALF / 2;
             float roundRad = ((int)Math.Round(angleHor / deg45)) * deg45;
-            //bect.MeshAngleRad = roundRad;
         }
 
         InitializeNoticeBoard(world, byPlayer, itemstack, blockSel, ref failureCode);
@@ -109,9 +107,10 @@ public class NoticeBoardBlock : Block
 
     public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
     {
-        BlockPos blockPos = blockSel.Position;
+        BlockPos absolutePos = blockSel.Position;
+        string absolutePosString = absolutePos.ToString();
 
-        if (world.BlockAccessor.GetBlockEntity(blockPos) is NoticeBoardBlockEntity blockEntity)
+        if (world.BlockAccessor.GetBlockEntity(absolutePos) is NoticeBoardBlockEntity blockEntity)
         {
             if (world.Side == EnumAppSide.Client)
             {
@@ -120,7 +119,7 @@ public class NoticeBoardBlock : Block
                 {
                     PlayerId = byPlayer.PlayerUID,
                     BoardId = blockEntity.uniqueID,
-                    Pos = blockSel.Position.ToLocalPosition(NoticeBoardModSystem.getCAPI()).ToString(),
+                    Pos = absolutePosString,
                 };
 
                 NoticeBoardModSystem.getCAPI().Network.GetChannel("noticeboard").SendPacket(sendPacket);
@@ -176,6 +175,92 @@ public class NoticeBoardBlock : Block
             }
         }
     }
+    public void SpawnUnreadParticles(IWorldAccessor world, BlockPos pos)
+    {
+        if (world.Side != EnumAppSide.Server) return;
+
+        Block block = world.BlockAccessor.GetBlock(pos);
+        string facing = block?.Variant?["side"] ?? "north";
+
+        Vec3d center = pos.ToVec3d().Add(0.5, 2.50, 0.5);
+
+        switch (facing)
+        {
+            case "north": center.X += 1.0; break;
+            case "south": center.X -= 1.0; break;
+            case "east": center.Z += 1.0; break;
+            case "west": center.Z -= 1.0; break;
+        }
+
+        int count = 32;
+
+        Vec3d sharedPos = new Vec3d();
+        Vec3f sharedVel = new Vec3f();
+
+        SimpleParticleProperties props = new SimpleParticleProperties(
+            1, 1,
+            0,                    
+            sharedPos, sharedPos,
+            sharedVel, sharedVel,
+            4.5f,
+            -0.004f,
+            0.14f, 0.14f,
+            EnumParticleModel.Quad
+        );
+
+        props.SizeEvolve = new EvolvingNatFloat(EnumTransformFunction.LINEAR, -0.14f);
+
+        for (int i = 0; i < count; i++)
+        {
+            sharedPos.Set(center.X, center.Y, center.Z);
+
+            sharedPos.Y += 0.65 + (world.Rand.NextDouble() - 0.5) * 0.3;
+
+            if (facing == "north" || facing == "south")
+            {
+                sharedPos.X += (world.Rand.NextDouble() - 0.5) * 2.8;
+            }
+            else
+            {
+                sharedPos.Z += (world.Rand.NextDouble() - 0.5) * 2.8;
+            }
+
+            sharedPos.Z += (world.Rand.NextDouble() - 0.5) * 0.3;
+
+            double forwardOffset = -0.1 + world.Rand.NextDouble() * 0.25;
+
+            switch (facing)
+            {
+                case "north": sharedPos.Z -= forwardOffset; break;
+                case "south": sharedPos.Z += forwardOffset; break;
+                case "east": sharedPos.X += forwardOffset; break;
+                case "west": sharedPos.X -= forwardOffset; break;
+            }
+
+            props.Color = GetRandomGoldColor(world.Rand);
+
+            sharedVel.Set(
+                (float)(world.Rand.NextDouble() - 0.5) * 0.15f,
+                (float)(world.Rand.NextDouble() * 0.12f - 0.15f),
+                (float)(world.Rand.NextDouble() - 0.5) * 0.15f
+            );
+
+            world.SpawnParticles(props);
+        }
+    }
+
+    private int GetRandomGoldColor(Random rand)
+    {
+        int variation = (int)rand.NextInt64(5);
+        return variation switch
+        {
+            0 => ColorUtil.ToRgba(240, 255, 220, 60),
+            1 => ColorUtil.ToRgba(235, 255, 200, 50),
+            2 => ColorUtil.ToRgba(245, 255, 180, 70),
+            3 => ColorUtil.ToRgba(230, 255, 140, 40),
+            _ => ColorUtil.ToRgba(250, 255, 230, 90)
+        };
+    }
 
     public override void OnBlockBroken(IWorldAccessor world, BlockPos pos, IPlayer byPlayer, float dropQuantityMultiplier = 1)
     {
@@ -203,19 +288,8 @@ public class NoticeBoardBlock : Block
             }
         }
 
-        //if (world.Side == EnumAppSide.Client)
-        //{
-        //    PlayerDestroyNoticeBoard sendPacket = new PlayerDestroyNoticeBoard
-        //    {
-        //        BoardId = blockUniqueId,
-        //    };
-
-        //    NoticeBoardModSystem.getCAPI().Network.GetChannel("noticeboard").SendPacket(sendPacket);
-        //}
-
         SpawnBlockBrokenParticles(pos, byPlayer);
         world.BlockAccessor.SetBlock(0, pos);
-        //base.OnBlockBroken(world, pos, byPlayer, dropQuantityMultiplier);
         if (!world.Side.IsServer()) return; // Ensure only the server handles dropping items
     }
 }
