@@ -1,6 +1,6 @@
-﻿using NoticeBoard.Packets;
-using System;
+﻿using System;
 using System.Text;
+using NoticeBoard.Packets;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
@@ -9,6 +9,7 @@ using Vintagestory.API.MathTools;
 using Vintagestory.API.Util;
 
 namespace NoticeBoard.BlockType;
+
 public class NoticeBoardBlock : Block
 {
     WorldInteraction[] interactions;
@@ -21,132 +22,217 @@ public class NoticeBoardBlock : Block
 
         isWallBoard = Variant["attachment"] == "wall";
 
-        interactions = ObjectCacheUtil.GetOrCreate(api, "noticeBoardInteraction", () =>
-        {
-            return new WorldInteraction[] { new WorldInteraction()
+        interactions = ObjectCacheUtil.GetOrCreate(
+            api,
+            "noticeBoardInteraction",
+            () =>
+            {
+                return new WorldInteraction[]
+                {
+                    new WorldInteraction()
                     {
                         ActionLangCode = "blockhelp-sign-write",
                         MouseButton = EnumMouseButton.Right,
-                    }
+                    },
                 };
-        });
+            }
+        );
     }
 
-    public override WorldInteraction[] GetPlacedBlockInteractionHelp(IWorldAccessor world, BlockSelection selection, IPlayer forPlayer)
+    public override WorldInteraction[] GetPlacedBlockInteractionHelp(
+        IWorldAccessor world,
+        BlockSelection selection,
+        IPlayer forPlayer
+    )
     {
         return interactions.Append(base.GetPlacedBlockInteractionHelp(world, selection, forPlayer));
     }
 
-    public void InitializeNoticeBoard(IWorldAccessor world, IPlayer byPlayer, ItemStack itemstack, BlockSelection blockSel, ref string failureCode)
+    public void InitializeNoticeBoard(
+        IWorldAccessor world,
+        IPlayer byPlayer,
+        ItemStack itemstack,
+        BlockSelection blockSel,
+        ref string failureCode
+    )
     {
-        if (world.BlockAccessor.GetBlockEntity(blockSel.Position) is NoticeBoardBlockEntity blockEntity)
+        if (
+            world.BlockAccessor.GetBlockEntity(blockSel.Position)
+            is NoticeBoardBlockEntity blockEntity
+        )
         {
-            if (blockEntity.uniqueID != null)
-            {
-                return;
-            }
-
             if (itemstack != null && itemstack.Attributes.HasAttribute("uniqueID"))
             {
-                string uniqueIdFromItemStack = itemstack.Attributes.GetString("uniqueID");
-                blockEntity.uniqueID = uniqueIdFromItemStack;
-                blockEntity.MarkDirty(true); // Ensure the block entity updates
-            } else if (blockEntity.uniqueID == null)
-            {
-                blockEntity.GenerateUniqueID();
+                blockEntity.uniqueID = itemstack.Attributes.GetString("uniqueID");
             }
+            else if (string.IsNullOrEmpty(blockEntity.uniqueID))
+            {
+                if (world.Side == EnumAppSide.Server)
+                {
+                    blockEntity.GenerateUniqueID();
+                }
+            }
+
+            if (itemstack != null && itemstack.Attributes.HasAttribute("inventory"))
+            {
+                ITreeAttribute invTree = itemstack.Attributes.GetTreeAttribute("inventory");
+                blockEntity.Inventory.FromTreeAttributes(invTree);
+            }
+
+            blockEntity.MarkDirty(true);
         }
     }
-    public override bool TryPlaceBlock(IWorldAccessor world, IPlayer byPlayer, ItemStack itemstack, BlockSelection blockSel, ref string failureCode)
+
+    public override bool TryPlaceBlock(
+        IWorldAccessor world,
+        IPlayer byPlayer,
+        ItemStack itemstack,
+        BlockSelection blockSel,
+        ref string failureCode
+    )
     {
         BlockPos supportingPos = blockSel.Position.AddCopy(blockSel.Face.Opposite);
+
         Block supportingBlock = world.BlockAccessor.GetBlock(supportingPos);
 
-        NoticeBoardBlockEntity bect = world.BlockAccessor.GetBlockEntity(blockSel.Position) as NoticeBoardBlockEntity;
+        bool blockPlaced = false;
 
-        if (blockSel.Face.IsHorizontal && (supportingBlock.CanAttachBlockAt(world.BlockAccessor, this, supportingPos, blockSel.Face) || supportingBlock.GetAttributes(world.BlockAccessor, supportingPos)?.IsTrue("partialAttachable") == true))
+        if (
+            blockSel.Face.IsHorizontal
+            && (
+                supportingBlock.CanAttachBlockAt(
+                    world.BlockAccessor,
+                    this,
+                    supportingPos,
+                    blockSel.Face
+                )
+                || supportingBlock
+                    .GetAttributes(world.BlockAccessor, supportingPos)
+                    ?.IsTrue("partialAttachable") == true
+            )
+        )
         {
-            Block wallblock = world.BlockAccessor.GetBlock(CodeWithParts("wall", blockSel.Face.Opposite.Code));
+            Block wallblock = world.BlockAccessor.GetBlock(
+                CodeWithParts("wall", blockSel.Face.Opposite.Code)
+            );
 
             if (!wallblock.CanPlaceBlock(world, byPlayer, blockSel, ref failureCode))
-            {
                 return false;
-            }
 
             world.BlockAccessor.SetBlock(wallblock.BlockId, blockSel.Position);
 
-            InitializeNoticeBoard(world, byPlayer, itemstack, blockSel, ref failureCode);
-
-            return true;
+            blockPlaced = true;
         }
-
-        if (!CanPlaceBlock(world, byPlayer, blockSel, ref failureCode))
+        else
         {
-            return false;
+            if (!CanPlaceBlock(world, byPlayer, blockSel, ref failureCode))
+                return false;
+            BlockFacing[] horVer = SuggestedHVOrientation(byPlayer, blockSel);
+            AssetLocation blockCode = CodeWithParts(horVer[0].Code);
+            Block block = world.BlockAccessor.GetBlock(blockCode);
+            world.BlockAccessor.SetBlock(block.BlockId, blockSel.Position);
+            blockPlaced = true;
         }
 
-        BlockFacing[] horVer = SuggestedHVOrientation(byPlayer, blockSel);
-        AssetLocation blockCode = CodeWithParts(horVer[0].Code);
-        Block block = world.BlockAccessor.GetBlock(blockCode);
-        world.BlockAccessor.SetBlock(block.BlockId, blockSel.Position);
-
-        if (bect != null)
+        if (blockPlaced)
         {
-            BlockPos targetPos = blockSel.DidOffset ? blockSel.Position.AddCopy(blockSel.Face.Opposite) : blockSel.Position;
-            double dx = byPlayer.Entity.Pos.X - (targetPos.X + blockSel.HitPosition.X);
-            double dz = (float)byPlayer.Entity.Pos.Z - (targetPos.Z + blockSel.HitPosition.Z);
-            float angleHor = (float)Math.Atan2(dx, dz);
+            if (world.BlockAccessor.GetBlockEntity(blockSel.Position) is NoticeBoardBlockEntity be)
+            {
+                InitializeNoticeBoard(world, byPlayer, itemstack, blockSel, ref failureCode);
 
-            float deg45 = GameMath.PIHALF / 2;
-            float roundRad = ((int)Math.Round(angleHor / deg45)) * deg45;
+                if (world.Side == EnumAppSide.Server)
+                {
+                    NoticeBoard.Database.SQLiteHandler db =
+                        new NoticeBoard.Database.SQLiteHandler();
+
+                    PlayerCreateNoticeBoard creationData = new PlayerCreateNoticeBoard
+                    {
+                        PlayerId = byPlayer.PlayerUID,
+
+                        BoardId = be.uniqueID,
+
+                        Pos = blockSel.Position.ToString(),
+                    };
+
+                    NoticeBoardObject noticeBoard = db.GetBoardData(be.uniqueID);
+
+                    if (noticeBoard != null && noticeBoard.BoardId == be.uniqueID)
+                    {
+                        db.UpdateNoticeBoard(creationData);
+                    }
+                    else
+                    {
+                        db.CreateNoticeBoard(creationData);
+                    }
+                }
+            }
         }
 
-        InitializeNoticeBoard(world, byPlayer, itemstack, blockSel, ref failureCode);
-        return true;
+        return blockPlaced;
     }
 
-    public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
+    public override bool OnBlockInteractStart(
+        IWorldAccessor world,
+        IPlayer byPlayer,
+        BlockSelection blockSel
+    )
     {
-        BlockPos absolutePos = blockSel.Position;
-        string absolutePosString = absolutePos.ToString();
-
-        if (world.BlockAccessor.GetBlockEntity(absolutePos) is NoticeBoardBlockEntity blockEntity)
+        if (byPlayer.InventoryManager.ActiveHotbarSlot?.Itemstack?.Block is NoticeBoardBlock)
         {
+            return base.OnBlockInteractStart(world, byPlayer, blockSel);
+        }
+
+        if (
+            world.BlockAccessor.GetBlockEntity(blockSel.Position)
+            is NoticeBoardBlockEntity blockEntity
+        )
+        {
+            if (string.IsNullOrEmpty(blockEntity.uniqueID))
+                return false;
+
             if (world.Side == EnumAppSide.Client)
             {
-
-                PlayerCreateNoticeBoard sendPacket = new PlayerCreateNoticeBoard
-                {
-                    PlayerId = byPlayer.PlayerUID,
-                    BoardId = blockEntity.uniqueID,
-                    Pos = absolutePosString,
-                };
-
-                NoticeBoardModSystem.getCAPI().Network.GetChannel("noticeboard").SendPacket(sendPacket);
-
                 RequestAllMessages requestPacket = new RequestAllMessages
                 {
                     BoardId = blockEntity.uniqueID,
-                    PlayerId = byPlayer.PlayerUID
+
+                    PlayerId = byPlayer.PlayerUID,
                 };
 
-                NoticeBoardModSystem.getCAPI().Network.GetChannel("noticeboard").SendPacket(requestPacket);
+                NoticeBoardModSystem
+                    .getCAPI()
+                    .Network.GetChannel("noticeboard")
+                    .SendPacket(requestPacket);
+
+                blockEntity.OnPlayerRightClick(byPlayer, blockSel);
+                return true;
             }
         }
 
         return base.OnBlockInteractStart(world, byPlayer, blockSel);
     }
 
-    public override void OnBlockPlaced(IWorldAccessor world, BlockPos blockPos, ItemStack byItemStack = null)
+    public override void OnBlockPlaced(
+        IWorldAccessor world,
+        BlockPos blockPos,
+        ItemStack byItemStack = null
+    )
     {
         base.OnBlockPlaced(world, blockPos, byItemStack);
     }
 
-    public override void GetHeldItemInfo(ItemSlot inSlot, StringBuilder dsc, IWorldAccessor world, bool withDebugInfo)
+    public override void GetHeldItemInfo(
+        ItemSlot inSlot,
+        StringBuilder dsc,
+        IWorldAccessor world,
+        bool withDebugInfo
+    )
     {
         if (inSlot.Itemstack.Attributes.HasAttribute("uniqueID"))
         {
-            dsc.AppendLine(Lang.Get($"<font color=\"#99c9f9\"><i>It has some messages attached</i></font> \n"));
+            dsc.AppendLine(
+                Lang.Get($"<font color=\"#99c9f9\"><i>It has some messages attached</i></font> \n")
+            );
         }
 
         base.GetHeldItemInfo(inSlot, dsc, world, withDebugInfo);
@@ -155,86 +241,157 @@ public class NoticeBoardBlock : Block
     public void ChangeBlockShape(IWorldAccessor world, BlockPos pos, int messageCount)
     {
         Block currentBlock = world.BlockAccessor.GetBlock(pos);
+
         BlockEntity currentEntity = world.BlockAccessor.GetBlockEntity(pos);
-        if (currentEntity == null) return;
+
+        if (currentEntity == null)
+            return;
 
         TreeAttribute blockEntityData = new TreeAttribute();
+
         currentEntity.ToTreeAttributes(blockEntityData);
-       
+
         string[] splitPath = currentBlock.Code.Path.Split("-");
-        Block newBlock = world.GetBlock(new AssetLocation("noticeboard", $"noticeboard-{messageCount}-{currentBlock.Variant["attachment"]}-{currentBlock.Variant["side"]}"));
+
+        Block newBlock = world.GetBlock(
+            new AssetLocation(
+                "noticeboard",
+                $"noticeboard-{messageCount}-{currentBlock.Variant["attachment"]}-{currentBlock.Variant["side"]}"
+            )
+        );
 
         if (newBlock != null)
         {
             world.BlockAccessor.SetBlock(newBlock.BlockId, pos);
+
             BlockEntity newEntity = world.BlockAccessor.GetBlockEntity(pos);
+
             if (newEntity != null)
             {
                 newEntity.FromTreeAttributes(blockEntityData, world);
+
                 newEntity.MarkDirty(true);
             }
         }
     }
+
     public void SpawnUnreadParticles(IWorldAccessor world, BlockPos pos)
     {
-        if (world.Side != EnumAppSide.Server) return;
+        if (world.Side != EnumAppSide.Server)
+            return;
 
         Block block = world.BlockAccessor.GetBlock(pos);
         string facing = block?.Variant?["side"] ?? "north";
-
-        Vec3d center = pos.ToVec3d().Add(0.5, 2.50, 0.5);
+        double yOffset = isWallBoard ? 1.5 : 2.5;
+        Vec3d center = pos.ToVec3d().Add(0.5, yOffset, 0.5);
 
         switch (facing)
         {
-            case "north": center.X += 1.0; break;
-            case "south": center.X -= 1.0; break;
-            case "east": center.Z += 1.0; break;
-            case "west": center.Z -= 1.0; break;
+            case "north":
+                center.X += 1.0;
+                break;
+
+            case "south":
+                center.X -= 1.0;
+                break;
+
+            case "east":
+                center.Z += 1.0;
+                break;
+
+            case "west":
+                center.Z -= 1.0;
+                break;
         }
 
-        int count = 32;
+        int count = 42;
 
         Vec3d sharedPos = new Vec3d();
+
         Vec3f sharedVel = new Vec3f();
 
         SimpleParticleProperties props = new SimpleParticleProperties(
-            1, 1,
-            0,                    
-            sharedPos, sharedPos,
-            sharedVel, sharedVel,
+            1,
+            1,
+            0,
+            sharedPos,
+            sharedPos,
+            sharedVel,
+            sharedVel,
             4.5f,
-            -0.004f,
-            0.14f, 0.14f,
+            -0.001f,
+            0.14f,
+            0.14f,
             EnumParticleModel.Quad
         );
 
         props.SizeEvolve = new EvolvingNatFloat(EnumTransformFunction.LINEAR, -0.14f);
 
+        double frameWidth = 2.6;
+        double frameHeight = 2;
+        double verticalOffset = -0.35;
+        double fuzziness = 0.25;
+
         for (int i = 0; i < count; i++)
         {
-            sharedPos.Set(center.X, center.Y, center.Z);
+            sharedPos.Set(center.X, center.Y + verticalOffset, center.Z);
 
-            sharedPos.Y += 0.65 + (world.Rand.NextDouble() - 0.5) * 0.3;
+            int edge = world.Rand.Next(4);
+
+            double offsetX = 0;
+            double offsetY = 0;
+
+            if (edge == 0) // Top Edge
+            {
+                offsetX = (world.Rand.NextDouble() - 0.5) * frameWidth;
+                offsetY = frameHeight / 2.0;
+            }
+            else if (edge == 1) // Bottom Edge
+            {
+                offsetX = (world.Rand.NextDouble() - 0.5) * frameWidth;
+                offsetY = -frameHeight / 2.0;
+            }
+            else if (edge == 2) // Left Edge
+            {
+                offsetX = -frameWidth / 2.0;
+                offsetY = (world.Rand.NextDouble() - 0.5) * frameHeight;
+            }
+            else // Right Edge
+            {
+                offsetX = frameWidth / 2.0;
+                offsetY = (world.Rand.NextDouble() - 0.5) * frameHeight;
+            }
+
+            offsetX += (world.Rand.NextDouble() - 0.5) * fuzziness;
+            offsetY += (world.Rand.NextDouble() - 0.5) * fuzziness;
 
             if (facing == "north" || facing == "south")
             {
-                sharedPos.X += (world.Rand.NextDouble() - 0.5) * 2.8;
+                sharedPos.X += offsetX;
             }
             else
             {
-                sharedPos.Z += (world.Rand.NextDouble() - 0.5) * 2.8;
+                sharedPos.Z += offsetX;
             }
 
-            sharedPos.Z += (world.Rand.NextDouble() - 0.5) * 0.3;
-
-            double forwardOffset = -0.1 + world.Rand.NextDouble() * 0.25;
+            sharedPos.Y += offsetY;
+            double forwardOffsetBase = isWallBoard ? 0.25 : -0.1;
+            double forwardOffset = forwardOffsetBase + (world.Rand.NextDouble() * 0.15);
 
             switch (facing)
             {
-                case "north": sharedPos.Z -= forwardOffset; break;
-                case "south": sharedPos.Z += forwardOffset; break;
-                case "east": sharedPos.X += forwardOffset; break;
-                case "west": sharedPos.X -= forwardOffset; break;
+                case "north":
+                    sharedPos.Z -= forwardOffset;
+                    break;
+                case "south":
+                    sharedPos.Z += forwardOffset;
+                    break;
+                case "east":
+                    sharedPos.X += forwardOffset;
+                    break;
+                case "west":
+                    sharedPos.X -= forwardOffset;
+                    break;
             }
 
             props.Color = GetRandomGoldColor(world.Rand);
@@ -252,17 +409,23 @@ public class NoticeBoardBlock : Block
     private int GetRandomGoldColor(Random rand)
     {
         int variation = (int)rand.NextInt64(5);
+
         return variation switch
         {
             0 => ColorUtil.ToRgba(240, 255, 220, 60),
             1 => ColorUtil.ToRgba(235, 255, 200, 50),
             2 => ColorUtil.ToRgba(245, 255, 180, 70),
             3 => ColorUtil.ToRgba(230, 255, 140, 40),
-            _ => ColorUtil.ToRgba(250, 255, 230, 90)
+            _ => ColorUtil.ToRgba(250, 255, 230, 90),
         };
     }
 
-    public override void OnBlockBroken(IWorldAccessor world, BlockPos pos, IPlayer byPlayer, float dropQuantityMultiplier = 1)
+    public override void OnBlockBroken(
+        IWorldAccessor world,
+        BlockPos pos,
+        IPlayer byPlayer,
+        float dropQuantityMultiplier = 1
+    )
     {
         if (world.BlockAccessor.GetBlockEntity(pos) is NoticeBoardBlockEntity blockEntity)
         {
@@ -271,25 +434,24 @@ public class NoticeBoardBlock : Block
             if (world.Side == EnumAppSide.Server)
             {
                 Block block = world.BlockAccessor.GetBlock(CodeWithParts("ground", "north"));
-                if (block == null) block = world.BlockAccessor.GetBlock(CodeWithParts("wall", "north"));
-                ItemStack[] dropStacks = new ItemStack[] { new ItemStack(block) };
 
-                if (dropStacks != null)
-                {
-                    foreach (ItemStack stack in dropStacks)
-                    {
-                        if (stack != null)
-                        {
-                            stack.Attributes.SetString("uniqueID", blockEntity.uniqueID);
-                            world.SpawnItemEntity(stack, pos.ToVec3d().Add(0.5, 0.5, 0.5));
-                        }
-                    }
-                }
+                if (block == null)
+                    block = world.BlockAccessor.GetBlock(CodeWithParts("wall", "north"));
+
+                ItemStack dropStack = new ItemStack(block);
+                ITreeAttribute invTree = new TreeAttribute();
+                blockEntity.Inventory.ToTreeAttributes(invTree);
+                dropStack.Attributes["inventory"] = invTree;
+                dropStack.Attributes.SetString("uniqueID", blockEntity.uniqueID);
+                world.SpawnItemEntity(dropStack, pos.ToVec3d().Add(0.5, 0.5, 0.5));
             }
         }
 
         SpawnBlockBrokenParticles(pos, byPlayer);
+
         world.BlockAccessor.SetBlock(0, pos);
-        if (!world.Side.IsServer()) return; // Ensure only the server handles dropping items
+
+        if (!world.Side.IsServer())
+            return; // Ensure only the server handles dropping items
     }
 }

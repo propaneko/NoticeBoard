@@ -1,7 +1,7 @@
-﻿using Microsoft.Data.Sqlite;
-using NoticeBoard;
-using System;
+﻿using System;
 using System.IO;
+using Microsoft.Data.Sqlite;
+using NoticeBoard;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 
@@ -34,10 +34,12 @@ public class SQLiteDatabase
         this.TryOpenConnection();
         this.InitializeDatabase();
     }
+
     public SqliteConnection getSQLiteConnection()
     {
         return connection;
     }
+
     public string getSQLiteDBPath()
     {
         return dbFilePath;
@@ -46,7 +48,8 @@ public class SQLiteDatabase
     private void InitializeDatabase()
     {
         TryOpenConnection();
-        string createTableQuery = @"
+        string createTableQuery =
+            @"
             PRAGMA foreign_keys = ON;
 
             CREATE TABLE IF NOT EXISTS players (
@@ -57,11 +60,16 @@ public class SQLiteDatabase
 
             CREATE TABLE IF NOT EXISTS noticeBoard (
                 boardId TEXT NOT NULL PRIMARY KEY,
+                boardName TEXT DEFAULT 'Notice Board',
+                boardFont TEXT DEFAULT 'alagard',
                 ownerPlayerId TEXT NOT NULL,
                 pos TEXT,
                 isLocked INTEGER DEFAULT 0,
                 enableParticles INTEGER DEFAULT 1,
                 enableParchment INTEGER DEFAULT 1,
+                enableProximity INTEGER DEFAULT 0,
+                proximityChannel TEXT DEFAULT 'Proximity',
+                proximityDistance INTEGER DEFAULT 100,
                 createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (ownerPlayerId) REFERENCES players(playerId)
             );
@@ -72,6 +80,7 @@ public class SQLiteDatabase
                 senderPlayerId TEXT NOT NULL,
                 message TEXT NOT NULL,
                 createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
 
                 FOREIGN KEY (boardId) REFERENCES noticeBoard(boardId),
                 FOREIGN KEY (senderPlayerId) REFERENCES players(playerId)
@@ -109,7 +118,6 @@ public class SQLiteDatabase
         {
             throw;
         }
-
     }
 
     public void TryOpenConnection()

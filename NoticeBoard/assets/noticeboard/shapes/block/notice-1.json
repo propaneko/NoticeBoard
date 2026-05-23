@@ -1,0 +1,187 @@
+{
+	"editor": {
+		"collapsedPaths": "Root/rootboard/top,Root/woodleg24",
+		"allAngles": true,
+		"entityTextureMode": false
+	},
+	"textureWidth": 32,
+	"textureHeight": 64,
+	"textureSizes": {},
+	"textures": {
+	},
+	"elements": [
+		{
+			"name": "notice1",
+			"from": [ 7.0, 11.0, 8.2 ],
+			"to": [ 7.5, 11.5, 11.2 ],
+			"rotationOrigin": [ 7.0, 9.0, 8.0 ],
+			"rotationX": -14.0,
+			"rotationY": 0.0,
+			"rotationZ": 6.0,
+			"faces": {
+				"north": {
+					"texture": "#iron",
+					"uv": [ 0.0, 0.0, 1.0, 2.0 ]
+				},
+				"east": {
+					"texture": "#iron",
+					"uv": [ 0.0, 0.0, 6.0, 2.0 ]
+				},
+				"south": {
+					"texture": "#iron",
+					"uv": [ 0.0, 0.0, 1.0, 2.0 ]
+				},
+				"west": {
+					"texture": "#iron",
+					"uv": [ 0.0, 0.0, 6.0, 2.0 ]
+				},
+				"up": {
+					"texture": "#iron",
+					"uv": [ 0.0, 0.0, 1.0, 12.0 ]
+				},
+				"down": {
+					"texture": "#iron",
+					"uv": [ 0.0, 0.0, 1.0, 12.0 ]
+				}
+			},
+			"children": [
+				{
+					"name": "Cube23",
+					"from": [ -0.25, -0.25, 2.9 ],
+					"to": [ 0.75, 0.75, 3.2 ],
+					"rotationOrigin": [ -0.2, -0.2, 2.9 ],
+					"faces": {
+						"north": {
+							"texture": "#iron",
+							"uv": [ 0.0, 0.0, 2.0, 4.0 ]
+						},
+						"east": {
+							"texture": "#iron",
+							"uv": [ 0.0, 0.0, 1.0, 4.0 ]
+						},
+						"south": {
+							"texture": "#iron",
+							"uv": [ 0.0, 0.0, 2.0, 4.0 ]
+						},
+						"west": {
+							"texture": "#iron",
+							"uv": [ 0.0, 0.0, 1.0, 4.0 ]
+						},
+						"up": {
+							"texture": "#iron",
+							"uv": [ 0.0, 0.0, 2.0, 2.0 ]
+						},
+						"down": {
+							"texture": "#iron",
+							"uv": [ 0.0, 0.0, 2.0, 2.0 ]
+						}
+					}
+				},
+				{
+					"name": "Cube24",
+					"from": [ 4.4, 1.0, 1.3 ],
+					"to": [ 12.4, 6.0, 1.5 ],
+					"rotationOrigin": [ 4.4, 1.0, 1.3 ],
+					"rotationX": 17.0,
+					"rotationZ": -180.0,
+					"faces": {
+						"north": {
+							"texture": "#paperlabel1",
+							"uv": [ 0.0, 40.0, 32.0, 64.0 ]
+						},
+						"east": {
+							"texture": "#paperlabelsample",
+							"uv": [ 31.0, 40.0, 32.0, 64.0 ]
+						},
+						"south": {
+							"texture": "#paperlabel1",
+							"uv": [ 0.0, 40.0, 32.0, 64.0 ]
+						},
+						"west": {
+							"texture": "#paperlabelsample",
+							"uv": [ 0.0, 40.0, 1.0, 64.0 ]
+						},
+						"up": {
+							"texture": "#paperlabelsample",
+							"uv": [ 0.0, 0.0, 32.0, 1.0 ]
+						},
+						"down": {
+							"texture": "#paperlabelsample",
+							"uv": [ 0.0, 62.8, 32.0, 64.0 ]
+						}
+					},
+					"children": [
+						{
+							"name": "Cube25",
+							"from": [ 0.0, 5.0, 0.0 ],
+							"to": [ 8.0, 10.0, 0.2 ],
+							"rotationOrigin": [ 0.0, 5.0, 0.0 ],
+							"rotationX": 8.0,
+							"faces": {
+								"north": {
+									"texture": "#paperlabelsample",
+									"uv": [ 0.0, 16.0, 32.0, 40.0 ]
+								},
+								"east": {
+									"texture": "#paperlabelsample",
+									"uv": [ 31.0, 16.0, 32.0, 40.0 ]
+								},
+								"south": {
+									"texture": "#paperlabel1",
+									"uv": [ 0.0, 16.0, 32.0, 40.0 ]
+								},
+								"west": {
+									"texture": "#paperlabelsample",
+									"uv": [ 0.0, 20.0, 1.0, 40.0 ]
+								},
+								"up": {
+									"texture": "#paperlabelsample",
+									"uv": [ 0.0, 0.0, 32.0, 1.0 ]
+								},
+								"down": {
+									"texture": "#paperlabelsample",
+									"uv": [ 0.0, 0.0, 32.0, 1.0 ]
+								}
+							},
+							"children": [
+								{
+									"name": "Cube26",
+									"from": [ 0.0, 5.0, 0.0 ],
+									"to": [ 8.0, 8.0, 0.2 ],
+									"rotationOrigin": [ 0.0, 5.0, 0.0 ],
+									"rotationX": 17.0,
+									"faces": {
+										"north": {
+											"texture": "#paperlabelsample",
+											"uv": [ 0.0, 0.0, 32.0, 16.0 ]
+										},
+										"east": {
+											"texture": "#paperlabelsample",
+											"uv": [ 0.0, 0.0, 1.0, 16.0 ]
+										},
+										"south": {
+											"texture": "#paperlabel1",
+											"uv": [ 0.0, 0.0, 32.0, 16.0 ]
+										},
+										"west": {
+											"texture": "#paperlabelsample",
+											"uv": [ 31.0, 1.0, 32.0, 17.0 ]
+										},
+										"up": {
+											"texture": "#paperlabelsample",
+											"uv": [ 0.0, 0.0, 16.0, 1.0 ]
+										},
+										"down": {
+											"texture": "#paperlabelsample",
+											"uv": [ 0.0, 0.0, 16.0, 1.0 ]
+										}
+									}
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	]
+}

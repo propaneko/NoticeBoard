@@ -10,7 +10,8 @@ public static class PositionHelper
     /// </summary>
     public static BlockPos FromString(string posString)
     {
-        if (string.IsNullOrEmpty(posString)) return null;
+        if (string.IsNullOrEmpty(posString))
+            return null;
 
         try
         {
@@ -31,9 +32,7 @@ public static class PositionHelper
                 return new BlockPos(x, y, z, dim);
             }
         }
-        catch (Exception)
-        {
-        }
+        catch (Exception) { }
 
         return null;
     }

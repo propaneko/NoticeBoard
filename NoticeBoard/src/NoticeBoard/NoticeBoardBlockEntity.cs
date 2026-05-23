@@ -1,6 +1,6 @@
-﻿using NoticeBoard.Database;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using NoticeBoard.Database;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 using Vintagestory.API.Datastructures;
@@ -11,10 +11,13 @@ namespace NoticeBoard.BlockType;
 
 public class NoticeBoardSlot : ItemSlot
 {
-    public NoticeBoardSlot(InventoryBase inventory) : base(inventory){}
+    public NoticeBoardSlot(InventoryBase inventory)
+        : base(inventory) { }
+
     public override bool CanHold(ItemSlot sourceSlot)
     {
-        if (sourceSlot?.Itemstack == null) return false;
+        if (sourceSlot?.Itemstack == null)
+            return false;
 
         return sourceSlot.Itemstack.Collectible.Code.Path == "paper-parchment";
     }
@@ -25,18 +28,32 @@ public class NoticeBoardSlot : ItemSlot
 public class NoticeBoardBlockEntity : BlockEntityOpenableContainer
 {
     public string uniqueID;
+
     private double actionInterval = 1;
+
     private long lastParticleSpawnTime = 0;
+
     private long listener;
 
     public int quantitySlots = 1;
+
     public string inventoryClassName = "noticeboard";
+
     public string dialogTitleLangCode = "noticeboardcontents";
+
+    private int cachedMessageCount = -1;
+
+    private long lastCacheUpdate = 0;
+
+    private readonly TimeSpan cacheValidity = TimeSpan.FromSeconds(15);
+
+    private Dictionary<string, bool> unreadCache = new Dictionary<string, bool>();
+
+    private long lastUnreadCacheUpdate = 0;
 
     private readonly SQLiteHandler db = new();
 
     private InventoryGeneric inventory;
-
 
     public override InventoryBase Inventory
     {
@@ -48,9 +65,8 @@ public class NoticeBoardBlockEntity : BlockEntityOpenableContainer
         get { return inventoryClassName; }
     }
 
-    public NoticeBoardBlockEntity()
-    {
-    }
+    public NoticeBoardBlockEntity() { }
+
     public override void Initialize(ICoreAPI api)
     {
         bool isNewlyplaced = inventory == null;
@@ -62,20 +78,29 @@ public class NoticeBoardBlockEntity : BlockEntityOpenableContainer
 
         base.Initialize(api);
 
-        if (!Api.World.Side.IsServer()) return;
-        listener = RegisterGameTickListener(OnPerformAction, (int)(actionInterval * 500));
+        if (!Api.World.Side.IsServer())
+            return;
+
+        listener = RegisterGameTickListener(OnPerformAction, (int)(actionInterval * 1000));
     }
 
     private void InitInventory(Block Block, ICoreAPI api)
     {
         if (Block?.Attributes != null)
         {
-            inventoryClassName = Block.Attributes["inventoryClassName"].AsString(inventoryClassName);
-            dialogTitleLangCode = Block.Attributes["dialogTitleLangCode"].AsString(dialogTitleLangCode);
+            inventoryClassName = Block
+                .Attributes["inventoryClassName"]
+                .AsString(inventoryClassName);
+
+            dialogTitleLangCode = Block
+                .Attributes["dialogTitleLangCode"]
+                .AsString(dialogTitleLangCode);
+
             quantitySlots = Block.Attributes["quantitySlots"].AsInt(quantitySlots);
         }
 
         string myInvId = InventoryClassName + "-" + Pos;
+
         inventory = new InventoryGeneric(
             quantitySlots,
             myInvId,
@@ -117,6 +142,7 @@ public class NoticeBoardBlockEntity : BlockEntityOpenableContainer
             base.OnReceivedClientPacket(player, packetid, data);
         }
     }
+
     public override bool OnPlayerRightClick(IPlayer byPlayer, BlockSelection blockSel)
     {
         if (Api.World.Side.IsServer())
@@ -125,7 +151,13 @@ public class NoticeBoardBlockEntity : BlockEntityOpenableContainer
             {
                 byPlayer.InventoryManager.OpenInventory(this.Inventory);
 
-                var data = BlockEntityContainerOpen.ToBytes("BlockEntityInventory", Lang.Get(dialogTitleLangCode), 4, inventory);
+                var data = BlockEntityContainerOpen.ToBytes(
+                    "BlockEntityInventory",
+                    Lang.Get(dialogTitleLangCode),
+                    4,
+                    inventory
+                );
+
                 ((ICoreServerAPI)Api).Network.SendBlockEntityPacket(
                     (IServerPlayer)byPlayer,
                     Pos,
@@ -141,47 +173,107 @@ public class NoticeBoardBlockEntity : BlockEntityOpenableContainer
     public string GenerateUniqueID()
     {
         uniqueID = System.Guid.NewGuid().ToString();
+
         return uniqueID;
     }
 
     private void OnPerformAction(float dt)
     {
-        double messageCount = new SQLiteHandler().CountMessageElementsByBoardId(uniqueID);
-        double divisionMessageNumbers = messageCount / NoticeBoardModSystem.getConfig().DivisionForPapersOnBoard;
-        divisionMessageNumbers = divisionMessageNumbers > 6 ? 6 : divisionMessageNumbers;
+        if (string.IsNullOrEmpty(uniqueID))
+            return;
+
+        UpdateMessageCountCache();
+
+        double messageCount = cachedMessageCount;
+
+        double divisionMessageNumbers =
+            messageCount / NoticeBoardModSystem.getConfig().DivisionForPapersOnBoard;
+
+        divisionMessageNumbers = Math.Min(divisionMessageNumbers, 6);
+
         divisionMessageNumbers = Math.Floor(divisionMessageNumbers);
 
-        NoticeBoardBlock myBlock = Block as NoticeBoardBlock;
-        if (myBlock != null)
+        if (Block is NoticeBoardBlock myBlock)
         {
-            myBlock.ChangeBlockShape(Api.World, Pos, (int)(messageCount == 1 ? messageCount : divisionMessageNumbers));
+            myBlock.ChangeBlockShape(
+                Api.World,
+                Pos,
+                (int)(messageCount == 1 ? messageCount : divisionMessageNumbers)
+            );
         }
 
-        if (Api.World.Side.IsServer() && Api.World.ElapsedMilliseconds - lastParticleSpawnTime > 800)
+        if (
+            Api.World.Side.IsServer()
+            && Api.World.ElapsedMilliseconds - lastParticleSpawnTime > 800
+        )
         {
             lastParticleSpawnTime = Api.World.ElapsedMilliseconds;
 
+            UpdateUnreadCacheIfNeeded();
+
             foreach (IServerPlayer player in Api.World.AllOnlinePlayers)
             {
-                if (player.ConnectionState != EnumClientState.Playing) continue;
+                if (player.ConnectionState != EnumClientState.Playing)
+                    continue;
 
-                double distanceSq = player.Entity.Pos.SquareDistanceTo(Pos.ToVec3d());
-                if (distanceSq > 32 * 32) continue;
+                if (player.Entity.Pos.SquareDistanceTo(Pos.ToVec3d()) > 32 * 32)
+                    continue;
 
-                if (HasUnreadMessagesForPlayer(player.PlayerUID) && ShouldParticlesSpawn())
+                if (HasUnreadCached(player.PlayerUID) && ShouldParticlesSpawn())
                 {
                     ((NoticeBoardBlock)Block)?.SpawnUnreadParticles(Api.World, Pos);
+
                     break;
                 }
             }
         }
     }
+
+    private void UpdateMessageCountCache()
+    {
+        if (
+            cachedMessageCount >= 0
+            && Api.World.ElapsedMilliseconds - lastCacheUpdate < cacheValidity.TotalMilliseconds
+        )
+        {
+            return;
+        }
+
+        cachedMessageCount = db.CountMessageElementsByBoardId(uniqueID);
+        lastCacheUpdate = Api.World.ElapsedMilliseconds;
+    }
+
+    private void UpdateUnreadCacheIfNeeded()
+    {
+        long now = Api.World.ElapsedMilliseconds;
+
+        if (now - lastUnreadCacheUpdate < 2000)
+            return;
+
+        unreadCache.Clear();
+
+        foreach (IServerPlayer player in Api.World.AllOnlinePlayers)
+        {
+            if (player.ConnectionState == EnumClientState.Playing)
+            {
+                unreadCache[player.PlayerUID] = db.HasUnreadMessages(player.PlayerUID, uniqueID);
+            }
+        }
+
+        lastUnreadCacheUpdate = now;
+    }
+
+    private bool HasUnreadCached(string playerId)
+    {
+        return unreadCache.TryGetValue(playerId, out bool hasUnread) && hasUnread;
+    }
+
     public bool ShouldParticlesSpawn()
     {
         if (string.IsNullOrEmpty(uniqueID))
             return false;
 
-        return db.GetBoardData(uniqueID)?.enableParticles == 1;
+        return db.GetBoardData(uniqueID)?.EnableParticles == 1;
     }
 
     public bool HasUnreadMessagesForPlayer(string playerId)
@@ -195,26 +287,43 @@ public class NoticeBoardBlockEntity : BlockEntityOpenableContainer
     public override void OnBlockRemoved()
     {
         UnregisterGameTickListener(listener);
+
         base.OnBlockRemoved();
     }
 
-    public override void FromTreeAttributes(ITreeAttribute tree, IWorldAccessor worldAccessForResolve)
+    public override void FromTreeAttributes(
+        ITreeAttribute tree,
+        IWorldAccessor worldAccessForResolve
+    )
     {
         if (inventory == null)
         {
             if (tree.HasAttribute("forBlockId"))
             {
-                InitInventory(worldAccessForResolve.GetBlock((ushort)tree.GetInt("forBlockId")), Api);
+                InitInventory(
+                    worldAccessForResolve.GetBlock((ushort)tree.GetInt("forBlockId")),
+                    Api
+                );
             }
         }
+
         base.FromTreeAttributes(tree, worldAccessForResolve);
+
         uniqueID = tree.GetString("uniqueID", uniqueID);
     }
 
     public override void ToTreeAttributes(ITreeAttribute tree)
     {
         base.ToTreeAttributes(tree);
-        tree.SetString("uniqueID", uniqueID);
-        if (Block != null) tree.SetInt("forBlockId", Block.BlockId);
+
+        if (!string.IsNullOrEmpty(uniqueID))
+        {
+            tree.SetString("uniqueID", uniqueID);
+        }
+
+        if (Block != null)
+        {
+            tree.SetInt("forBlockId", Block.BlockId);
+        }
     }
 }

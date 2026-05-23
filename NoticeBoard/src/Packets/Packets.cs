@@ -48,6 +48,13 @@ namespace NoticeBoard.Packets
     }
 
     [ProtoContract]
+    public class PlayerBumpMessage
+    {
+        [ProtoMember(1)]
+        public int MessageId { get; set; }
+    }
+
+    [ProtoContract]
     public class PlayerSendMessage
     {
         [ProtoMember(1)]
@@ -88,9 +95,9 @@ namespace NoticeBoard.Packets
         public string BoardId { get; set; }
 
         [ProtoMember(2)]
-        public bool isLocked { get; set; }
+        public bool IsLocked { get; set; }
     }
-    
+
     [ProtoContract]
     public class EditEnableParticles
     {
@@ -98,7 +105,7 @@ namespace NoticeBoard.Packets
         public string BoardId { get; set; }
 
         [ProtoMember(2)]
-        public bool enableParticles { get; set; }
+        public bool EnableParticles { get; set; }
     }
 
     [ProtoContract]
@@ -108,7 +115,67 @@ namespace NoticeBoard.Packets
         public string BoardId { get; set; }
 
         [ProtoMember(2)]
-        public bool enableParchment { get; set; }
+        public bool EnableParchment { get; set; }
+    }
+
+    [ProtoContract]
+    public class EditBoardName
+    {
+        [ProtoMember(1)]
+        public string BoardId { get; set; }
+
+        [ProtoMember(2)]
+        public string BoardName { get; set; }
+    }
+
+    [ProtoContract]
+    public class EditBoardOwner
+    {
+        [ProtoMember(1)]
+        public string BoardId { get; set; }
+
+        [ProtoMember(2)]
+        public string NewOwnerUid { get; set; }
+    }
+
+    [ProtoContract]
+    public class EditBoardFont
+    {
+        [ProtoMember(1)]
+        public string BoardId { get; set; }
+
+        [ProtoMember(2)]
+        public string BoardFont { get; set; }
+    }
+
+    [ProtoContract]
+    public class EditEnableProximity
+    {
+        [ProtoMember(1)]
+        public string BoardId { get; set; }
+
+        [ProtoMember(2)]
+        public bool EnableProximity { get; set; }
+    }
+
+    [ProtoContract]
+    public class EditProximityChannel
+    {
+        [ProtoMember(1)]
+        public string BoardId { get; set; }
+
+        [ProtoMember(2)]
+        public string ChannelName { get; set; }
+    }
+
+    [ProtoContract]
+    public class EditProximityDistance
+    {
+        [ProtoMember(1)]
+        public string BoardId { get; set; }
+
+        [ProtoMember(2)]
+        public int Distance { get; set; }
     }
 
 
@@ -134,20 +201,37 @@ namespace NoticeBoard.Packets
         public string BoardId { get; set; }
 
         [ProtoMember(2)]
-        public string PlayerId { get; set; }
+        public string BoardName { get; set; }
 
         [ProtoMember(3)]
-        public string PlayerName { get; set; }
+        public string BoardFont { get; set; }
 
         [ProtoMember(4)]
-        public string Pos { get; set; }
+        public string PlayerId { get; set; }
 
         [ProtoMember(5)]
-        public int isLocked { get; set; }
+        public string PlayerName { get; set; }
+
         [ProtoMember(6)]
-        public int enableParticles { get; set; }
+        public string Pos { get; set; }
+
         [ProtoMember(7)]
-        public int enableParchment { get; set; }
+        public int IsLocked { get; set; }
+
+        [ProtoMember(8)]
+        public int EnableParticles { get; set; }
+
+        [ProtoMember(9)]
+        public int EnableParchment { get; set; }
+
+        [ProtoMember(10)]
+        public int EnableProximity { get; set; }
+        
+        [ProtoMember(11)]
+        public string ProximityChannel { get; set; }
+
+        [ProtoMember(12)]
+        public int ProximityDistance { get; set; }
     }
 
 
@@ -160,12 +244,14 @@ namespace NoticeBoard.Packets
     public class RequestAllPlayers
     {
     }
+
     [ProtoContract]
     public class ResponseAllPlayers
     {
         [ProtoMember(1)]
         public List<PlayerEntry> Players { get; set; }
     }
+
     [ProtoContract]
     public class PlayerEntry
     {
