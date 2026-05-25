@@ -20,6 +20,7 @@ namespace NoticeBoard.Events
             var channel = NoticeBoardModSystem.getSAPI().Network.GetChannel("noticeboard");
             channel.SetMessageHandler<RequestAllMessages>(OnPlayerRequestAllMessages);
             channel.SetMessageHandler<PlayerSendMessage>(OnPlayerSendMessage);
+            channel.SetMessageHandler<PlayerSendDocument>(OnPlayerSendDocument);
             channel.SetMessageHandler<PlayerEditMessage>(OnPlayerEditMessage);
             channel.SetMessageHandler<PlayerBumpMessage>(OnPlayerBumpMessage);
             channel.SetMessageHandler<PlayerRemoveMessage>(OnPlayerRemoveMessage);
@@ -30,6 +31,7 @@ namespace NoticeBoard.Events
             channel.SetMessageHandler<EditEnableParchment>(OnPlayerEditEnableParchment);
             channel.SetMessageHandler<RequestAllPlayers>(OnRequestAllPlayers);
             channel.SetMessageHandler<EditBoardName>(OnPlayerEditBoardName);
+            channel.SetMessageHandler<EditBoardFont>(OnPlayerEditBoardFont);
             channel.SetMessageHandler<EditBoardOwner>(OnPlayerEditBoardOwner);
             channel.SetMessageHandler<EditEnableProximity>(OnPlayerEditEnableProximity);
             channel.SetMessageHandler<EditProximityChannel>(OnPlayerEditProximityChannel);
@@ -61,6 +63,20 @@ namespace NoticeBoard.Events
         private void OnPlayerRemoveMessage(IServerPlayer player, PlayerRemoveMessage packet)
         {
             db.DeleteMessage(packet.MessageId);
+            NoticeBoardObject noticeBoard = db.GetBoardData(packet.BoardId);
+            BlockPos boardPos = PositionHelper.FromString(noticeBoard.Pos);
+            NoticeBoardModSystem
+                .getSAPI()
+                .World.PlaySoundAt(
+                    new AssetLocation("noticeboard:sounds/effect/delete.ogg"),
+                    boardPos.X,
+                    boardPos.Y,
+                    boardPos.Z,
+                    null,
+                    true,
+                    32.0f,
+                    0.1f + (float)NoticeBoardModSystem.getSAPI().World.Rand.NextDouble() * 0.2f
+                );
         }
 
         private void OnPlayerEditMessage(IServerPlayer player, PlayerEditMessage packet)
@@ -98,6 +114,11 @@ namespace NoticeBoard.Events
             db.EditBoardName(packet);
         }
 
+        private void OnPlayerEditBoardFont(IServerPlayer player, EditBoardFont packet)
+        {
+            db.EditBoardFont(packet);
+        }
+
         private void OnPlayerEditEnableProximity(IServerPlayer player, EditEnableProximity packet)
         {
             db.EditEnableProximity(packet);
@@ -122,21 +143,9 @@ namespace NoticeBoard.Events
 
             db.InsertMessage(packet, player.PlayerName);
 
-            //db.MarkBoardAsRead(player.PlayerUID, packet.BoardId);
+            db.MarkBoardAsRead(player.PlayerUID, packet.BoardId);
 
             BlockPos boardPos = PositionHelper.FromString(noticeBoard.Pos);
-            NoticeBoardModSystem
-                .getSAPI()
-                .World.PlaySoundAt(
-                    new AssetLocation("game:sounds/block/wood"),
-                    boardPos.X,
-                    boardPos.Y,
-                    boardPos.Z,
-                    null,
-                    true,
-                    1.0f,
-                    0.9f + (float)NoticeBoardModSystem.getSAPI().World.Rand.NextDouble() * 0.2f
-                );
 
             NoticeBoardBlockEntity be =
                 NoticeBoardModSystem
@@ -146,22 +155,45 @@ namespace NoticeBoard.Events
 
             if (be != null && noticeBoard.EnableParchment == 1)
             {
-                ItemSlot slot = be.Inventory[0];
-                if (slot.Empty || slot.Itemstack?.Collectible?.Code == null)
+                bool parchmentFound = false;
+
+                for (int i = be.Inventory.Count - 1; i >= 0; i--)
+                {
+                    ItemSlot slot = be.Inventory[i];
+
+                    if (slot.Empty || slot.Itemstack?.Collectible?.Code == null)
+                        continue;
+
+                    string path = slot.Itemstack.Collectible.Code.Path;
+                    bool isParchment =
+                        path == "paper-parchment" || path.StartsWith("paper-parchment-");
+
+                    if (isParchment)
+                    {
+                        slot.TakeOut(1);
+                        slot.MarkDirty();
+                        be.MarkDirty(true);
+                        parchmentFound = true;
+                        break;
+                    }
+                }
+
+                if (!parchmentFound)
                     return;
-
-                string path = slot.Itemstack.Collectible.Code.Path;
-
-                bool isParchment = path == "paper-parchment" || path.StartsWith("paper-parchment-");
-
-                if (!isParchment)
-                    return;
-
-                slot.TakeOut(1);
-                slot.MarkDirty();
-                be.MarkDirty(true);
             }
-            ;
+
+            NoticeBoardModSystem
+                .getSAPI()
+                .World.PlaySoundAt(
+                    new AssetLocation("noticeboard:sounds/effect/new_message.ogg"),
+                    boardPos.X,
+                    boardPos.Y,
+                    boardPos.Z,
+                    null,
+                    true,
+                    32.0f,
+                    0.7f + (float)NoticeBoardModSystem.getSAPI().World.Rand.NextDouble() * 0.2f
+                );
 
             if (
                 noticeBoard.EnableProximity == 1
@@ -193,13 +225,107 @@ namespace NoticeBoard.Events
             }
         }
 
+        private void OnPlayerSendDocument(IServerPlayer player, PlayerSendDocument packet)
+        {
+            NoticeBoardObject noticeBoard = db.GetBoardData(packet.BoardId);
+            BlockPos boardPos = PositionHelper.FromString(noticeBoard.Pos);
+
+            NoticeBoardBlockEntity be =
+                NoticeBoardModSystem.getSAPI().World.BlockAccessor.GetBlockEntity(boardPos)
+                as NoticeBoardBlockEntity;
+
+            if (be == null)
+                return;
+
+            string documentText = "";
+            string authorName = player.PlayerName;
+
+            if (noticeBoard.EnableParchment == 1)
+            {
+                ItemSlot writtenSlot = be.Inventory[4]; 
+
+                if (writtenSlot.Empty || writtenSlot.Itemstack?.Collectible?.Code == null)
+                    return;
+
+                string path = writtenSlot.Itemstack.Collectible.Code.Path;
+                bool isParchment = path == "paper-parchment" || path.StartsWith("paper-parchment-");
+
+                if (!isParchment)
+                    return;
+
+                documentText = writtenSlot.Itemstack.Attributes.GetString("text", "");
+                authorName = writtenSlot.Itemstack.Attributes.GetString(
+                    "signedby",
+                    player.PlayerName
+                );
+
+                if (string.IsNullOrEmpty(documentText))
+                    return;
+                writtenSlot.TakeOut(1);
+                writtenSlot.MarkDirty();
+                be.MarkDirty(true);
+            }
+            else
+            {
+                return;
+            }
+
+            packet.Document = documentText;
+
+            db.InsertMessage(packet, authorName);
+
+            NoticeBoardModSystem
+                .getSAPI()
+                .World.PlaySoundAt(
+                    new AssetLocation("noticeboard:sounds/effect/new_message.ogg"),
+                    boardPos.X,
+                    boardPos.Y,
+                    boardPos.Z,
+                    null,
+                    true,
+                    32.0f,
+                    0.7f + (float)NoticeBoardModSystem.getSAPI().World.Rand.NextDouble() * 0.2f
+                );
+
+            if (
+                noticeBoard.EnableProximity == 1
+                && NoticeBoardModSystem
+                    .getSAPI()
+                    .Groups.GetPlayerGroupByName(noticeBoard.ProximityChannel) != null
+            )
+            {
+                var proximityGroup = NoticeBoardModSystem
+                    .getSAPI()
+                    .Groups.GetPlayerGroupByName(noticeBoard.ProximityChannel)
+                    .Uid;
+
+                if (proximityGroup != 0)
+                {
+                    string rpNickName = NoticeBoardModSystem
+                        .getSAPI()
+                        .GetPlayerByUID(player.PlayerUID)
+                        .GetModData("BASIC_NICKNAME", authorName);
+
+                    string message =
+                        $"<strong>{rpNickName}</strong> {Lang.Get("noticeboard:new-notice-proximity-message")} ({noticeBoard.BoardName})";
+
+                    Proximity.SendLocalChatByPlayer(
+                        player,
+                        message,
+                        noticeBoard.ProximityChannel,
+                        (int)noticeBoard.ProximityDistance
+                    );
+                }
+            }
+        }
+
         private void OnPlayerRequestAllMessages(IServerPlayer player, RequestAllMessages packet)
         {
             List<Message> messages = db.GetAllMessages(packet.BoardId);
 
             NoticeBoardObject tableProperties = db.GetBoardData(packet.BoardId);
 
-            //db.MarkBoardAsRead(player.PlayerUID, packet.BoardId);
+            db.MarkBoardAsRead(player.PlayerUID, packet.BoardId);
 
             ResponseAllMessages responsePacket = new ResponseAllMessages
             {

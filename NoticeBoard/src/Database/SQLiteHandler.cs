@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.Data.Sqlite;
-using NoticeBoard;
 using NoticeBoard.Packets;
-using Vintagestory.API.Server;
 
 namespace NoticeBoard.Database;
 
@@ -187,16 +185,16 @@ public class SQLiteHandler
         }
     }
 
-    public void EditCurrentFont(EditBoardFont packet)
+    public void EditBoardFont(EditBoardFont packet)
     {
         SQLiteDatabase.TryOpenConnection();
 
         try
         {
-            string query = "UPDATE noticeBoard SET currentFont = @currentFont WHERE boardId = @boardId";
+            string query = "UPDATE noticeBoard SET boardFont = @boardFont WHERE boardId = @boardId";
             using var command = new SqliteCommand(query, SQLiteConnection);
             command.Parameters.AddWithValue("@boardId", packet.BoardId);
-            command.Parameters.AddWithValue("@currentFont", packet.BoardFont);
+            command.Parameters.AddWithValue("@boardFont", packet.BoardFont);
             command.ExecuteNonQuery();
         }
         catch (Exception e)
@@ -276,7 +274,6 @@ public class SQLiteHandler
 
         try
         {
-            // Cascading delete is safer with foreign keys
             string query =
                 @"
                 DELETE FROM playerBoardReads WHERE boardId = @boardId;
@@ -362,6 +359,33 @@ public class SQLiteHandler
             command.Parameters.AddWithValue("@boardId", packet.BoardId);
             command.Parameters.AddWithValue("@playerId", packet.PlayerId);
             command.Parameters.AddWithValue("@message", packet.Message);
+            command.ExecuteNonQuery();
+        }
+        catch (Exception e)
+        {
+            NoticeBoardModSystem
+                .getSAPI()
+                .Logger.Error($"[NoticeBoard] Could not insert message: {e.Message}");
+        }
+    }
+
+    public void InsertMessage(PlayerSendDocument packet, string playerName)
+    {
+        SQLiteDatabase.TryOpenConnection();
+
+        try
+        {
+            AddPlayerToDatabase(packet.PlayerId, playerName);
+
+            string query =
+                @"
+                INSERT INTO messages (boardId, senderPlayerId, message) 
+                VALUES (@boardId, @playerId, @message)";
+
+            using var command = new SqliteCommand(query, SQLiteConnection);
+            command.Parameters.AddWithValue("@boardId", packet.BoardId);
+            command.Parameters.AddWithValue("@playerId", packet.PlayerId);
+            command.Parameters.AddWithValue("@message", packet.Document);
             command.ExecuteNonQuery();
         }
         catch (Exception e)

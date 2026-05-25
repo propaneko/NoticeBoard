@@ -22,7 +22,6 @@ public class SQLiteDatabase
             worldId = "global";
         }
 
-        //string modConfigDir = Path.Combine(GamePaths.DataPath, "ModData/noticeboard");
         string modConfigDir = Path.Combine(GamePaths.DataPath, "ModData/noticeboard", worldId);
         if (!Directory.Exists(modConfigDir))
         {

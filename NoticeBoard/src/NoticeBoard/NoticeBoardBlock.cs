@@ -238,6 +238,40 @@ public class NoticeBoardBlock : Block
         base.GetHeldItemInfo(inSlot, dsc, world, withDebugInfo);
     }
 
+    public override string GetPlacedBlockName(IWorldAccessor world, BlockPos pos)
+    {
+        if (world.BlockAccessor.GetBlockEntity(pos) is NoticeBoardBlockEntity blockEntity)
+        {
+            world.Logger.Debug($"[NoticeBoard] BoardProperties: {blockEntity.BoardProperties != null}, BoardName: '{blockEntity.BoardProperties?.BoardName}'");
+
+            if (!string.IsNullOrEmpty(blockEntity.BoardProperties?.BoardName))
+                return blockEntity.BoardProperties.BoardName;
+        }
+
+
+        return base.GetPlacedBlockName(world, pos);
+    }
+
+    public override string GetPlacedBlockInfo(IWorldAccessor world, BlockPos pos, IPlayer forPlayer)
+    {
+        if (world.BlockAccessor.GetBlockEntity(pos) is NoticeBoardBlockEntity blockEntity
+            && blockEntity.BoardProperties != null)
+        {
+            var props = blockEntity.BoardProperties;
+            var sb = new StringBuilder();
+
+            if (!string.IsNullOrEmpty(props.PlayerName))
+                sb.AppendLine($"Owner: {props.PlayerName}");
+
+            if (props.IsLocked == 1)
+                sb.AppendLine("Locked");
+
+            return sb.ToString().TrimEnd();
+        }
+
+        return string.Empty;
+    }
+
     public void ChangeBlockShape(IWorldAccessor world, BlockPos pos, int messageCount)
     {
         Block currentBlock = world.BlockAccessor.GetBlock(pos);
@@ -452,6 +486,6 @@ public class NoticeBoardBlock : Block
         world.BlockAccessor.SetBlock(0, pos);
 
         if (!world.Side.IsServer())
-            return; // Ensure only the server handles dropping items
+            return;
     }
 }

@@ -45,6 +45,8 @@ namespace NoticeBoard.Packets
     {
         [ProtoMember(1)]
         public int MessageId { get; set; }
+        [ProtoMember(2)]
+        public string BoardId { get; set; }
     }
 
     [ProtoContract]
@@ -52,6 +54,8 @@ namespace NoticeBoard.Packets
     {
         [ProtoMember(1)]
         public int MessageId { get; set; }
+        [ProtoMember(2)]
+        public string BoardId { get; set; }
     }
 
     [ProtoContract]
@@ -68,6 +72,19 @@ namespace NoticeBoard.Packets
     }
 
     [ProtoContract]
+    public class PlayerSendDocument
+    {
+        [ProtoMember(1)]
+        public string Document { get; set; }
+        [ProtoMember(2)]
+        public string BoardId { get; set; }
+        [ProtoMember(3)]
+        public string PlayerId { get; set; }
+        [ProtoMember(4)]
+        public BlockPos BoardPos;
+    }
+
+    [ProtoContract]
     public class PlayerEditMessage
     {
         [ProtoMember(1)]
@@ -75,7 +92,7 @@ namespace NoticeBoard.Packets
         [ProtoMember(2)]
         public string Message { get; set; }
         [ProtoMember(3)]
-        public BlockPos BoardPos;
+        public string BoardId { get; set; }
     }
 
     [ProtoContract]
@@ -207,30 +224,33 @@ namespace NoticeBoard.Packets
         public string BoardFont { get; set; }
 
         [ProtoMember(4)]
-        public string PlayerId { get; set; }
+        public string BoardTheme { get; set; }
 
         [ProtoMember(5)]
-        public string PlayerName { get; set; }
+        public string PlayerId { get; set; }
 
         [ProtoMember(6)]
-        public string Pos { get; set; }
+        public string PlayerName { get; set; }
 
         [ProtoMember(7)]
-        public int IsLocked { get; set; }
+        public string Pos { get; set; }
 
         [ProtoMember(8)]
-        public int EnableParticles { get; set; }
+        public int IsLocked { get; set; }
 
         [ProtoMember(9)]
-        public int EnableParchment { get; set; }
+        public int EnableParticles { get; set; }
 
         [ProtoMember(10)]
+        public int EnableParchment { get; set; }
+
+        [ProtoMember(11)]
         public int EnableProximity { get; set; }
         
-        [ProtoMember(11)]
+        [ProtoMember(12)]
         public string ProximityChannel { get; set; }
 
-        [ProtoMember(12)]
+        [ProtoMember(13)]
         public int ProximityDistance { get; set; }
     }
 
