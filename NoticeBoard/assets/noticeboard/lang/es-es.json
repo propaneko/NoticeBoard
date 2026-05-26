@@ -1,20 +1,37 @@
 {
-  "// Notice Board v1.2.2 || Enlace de VS ModDB: https://mods.vintagestory.at/noticeboard ": "",
-  "// Traducido por C4BR3R4 || Última Modificación: 4/NOV/2025 || Registro de Cambios: http://c4br3r4.es/index.php?topic=1285.0 ": "",
+  "block-noticeboard-*": "Tablón de anuncios",
 
-  "block-noticeboard-*": "Tablón de Anuncios",
+  "main-window-title-bar": "Tablón de anuncios",
+  "main-window-add-notice-button": "Redactar anuncio",
+  "main-window-add-document-button": "Fijar pergamino",
 
-  "main-window-title-bar": "Tablón de Anuncios",
-  "main-window-add-notice-button": "Añadir",
+  "main-window-tab-messages": "Mensajes",
+  "main-window-tab-settings": "Configuración",
 
-  "add-notice-window-title": "Escribe la Información",
-  "add-notice-window-pin-button": "Publicar",
+  "messages-error-missing-board": "¡Falta el inventario del tablón de anuncios!",
+  "messages-error-no-item-empty": "¡Coloca primero un pergamino en una ranura!",
+  "messages-error-no-item-written": "¡Coloca un pergamino firmado en la ranura!",
+  "messages-error-no-text": "¡Este pergamino está en blanco!",
 
-  "new-notice-proximity-message": "ha publicado en un Tablón de Anuncios cercano, el siguiente mensaje:",
+  "settings-board-id": "ID del tablón:",
+  "settings-board-name": "Nombre del tablón:",
+  "settings-board-owner": "Propietario del tablón:",
+  "settings-board-font": "Fuente del tablón:",
+  "settings-board-theme": "Tema del tablón:",
+  "settings-board-lock": "Bloquear tablón de anuncios:",
+  "settings-board-parchment": "Habilitar pergamino:",
+  "settings-board-particles": "Habilitar partículas:",
+  "settings-board-proximity": "Habilitar anuncio por proximidad:",
+  "settings-board-proximity-channel": "Nombre del canal de proximidad:",
+  "settings-board-proximity-distance": "Distancia de proximidad:",
+  "settings-board-save": "Guardar toda la configuración:",
 
+  "settings-board-not-owner": "(Solo el propietario puede editar esto)",
 
+  "add-notice-window-title": "Escribe tu anuncio",
+  "add-notice-window-pin-button": "Fijar",
+  "add-notice-window-preview": "Vista previa:",
+  "add-notice-window-preview-switch": "Habilitar vista previa",
 
-  "// Añadidas desde GitHub '/NoticeBoard/src/Gui/NoticeBoardMainWindowGui.cs' ": "",
-  "game:Lock": "Bloquear",
-  "game:Unlock": "Liberar"
+  "new-notice-proximity-message": "dejó un nuevo anuncio en el tablón "
 }

@@ -62,6 +62,8 @@ namespace NoticeBoard.src.Gui.Windows
             int insetWidth = 680;
             int insetDepth = 3;
 
+            ParchmentPalette theme = ThemeManager.GetCurrentTheme(this.noticeBoardPacket.BoardProperties.BoardTheme);
+
             ElementBounds dialogBounds = ElementStdBounds
                 .AutosizedMainDialog.WithAlignment(EnumDialogArea.CenterBottom)
                 .WithFixedOffset(0.0, -120.0);
@@ -69,13 +71,15 @@ namespace NoticeBoard.src.Gui.Windows
             double row1Y = GuiStyle.TitleBarHeight;
             ElementBounds boldBtn = ElementBounds.Fixed(0.0, row1Y, 35.0, 30.0);
             ElementBounds italicBtn = ElementBounds.Fixed(40.0, row1Y, 35.0, 30.0);
-            ElementBounds underBtn = ElementBounds.Fixed(80.0, row1Y, 35.0, 30.0);
-            ElementBounds strikeBtn = ElementBounds.Fixed(120.0, row1Y, 45.0, 30.0);
-            ElementBounds largeBtn = ElementBounds.Fixed(170.0, row1Y, 50.0, 30.0);
-            ElementBounds smallBtn = ElementBounds.Fixed(225.0, row1Y, 50.0, 30.0);
-            ElementBounds linkBtn = ElementBounds.Fixed(280.0, row1Y, 60.0, 30.0);
-            ElementBounds iconBtn = ElementBounds.Fixed(345.0, row1Y, 60, 30.0);
-            ElementBounds itemBtn = ElementBounds.Fixed(410.0, row1Y, 60, 30.0);
+            ElementBounds largeBtn = ElementBounds.Fixed(80.0, row1Y, 35.0, 30.0);
+            ElementBounds smallBtn = ElementBounds.Fixed(120.0, row1Y, 45.0, 30.0);
+            ElementBounds linkBtn = ElementBounds.Fixed(170.0, row1Y, 50.0, 30.0);
+            ElementBounds handbookBtn = ElementBounds.Fixed(225.0, row1Y, 55.0, 30.0);
+            ElementBounds commandBtn = ElementBounds.Fixed(285.0, row1Y, 60.0, 30.0);
+            ElementBounds iconBtn = ElementBounds.Fixed(350.0, row1Y, 60, 30.0);
+            ElementBounds itemBtn = ElementBounds.Fixed(415.0, row1Y, 60, 30.0);
+            ElementBounds helpBtn = ElementBounds.Fixed(580.0, row1Y, 100, 30.0);
+
 
             double row2Y = row1Y + 35.0;
             ElementBounds inkBtn = ElementBounds.Fixed(0.0, row2Y, 50.0, 30.0);
@@ -114,17 +118,11 @@ namespace NoticeBoard.src.Gui.Windows
                     previewInsetBounds,
                     previewScrollbarBounds,
                     buttonBounds,
-                    boldBtn, italicBtn, underBtn, strikeBtn, largeBtn, smallBtn, linkBtn, iconBtn, itemBtn,
+                    boldBtn, italicBtn, largeBtn, smallBtn, linkBtn, handbookBtn, commandBtn, iconBtn, itemBtn, helpBtn,
                     inkBtn, redBtn, blueBtn, greenBtn, goldBtn
                 );
 
-            double[] inkColor = [0.24, 0.16, 0.10, 1.0];
-            CairoFont inkFont = CairoFont.WhiteDetailText().WithColor(inkColor).WithFont(this.noticeBoardPacket.BoardProperties.BoardFont).WithFontSize(18f);
-
-            Action<LinkTextComponent> onLinkClicked = (link) =>
-            {
-                this.capi.Gui.OpenLink(link.Href);
-            };
+            CairoFont inkFont = CairoFont.WhiteDetailText().WithColor(theme.InkColor).WithFont(this.noticeBoardPacket.BoardProperties.BoardFont).WithFontSize(18f);
 
             GuiComposer dialogComposer = capi.Gui.CreateCompo("addNoticeGui", dialogBounds);
 
@@ -133,13 +131,16 @@ namespace NoticeBoard.src.Gui.Windows
 
             dialogComposer.AddSmallButton("B", () => InsertFormatTag("<strong>", "</strong>", dialogComposer), boldBtn, EnumButtonStyle.Normal);
             dialogComposer.AddSmallButton("I", () => InsertFormatTag("<i>", "</i>", dialogComposer), italicBtn, EnumButtonStyle.Normal);
-            dialogComposer.AddSmallButton("U", () => InsertFormatTag("<u>", "</u>", dialogComposer), underBtn, EnumButtonStyle.Normal);
-            dialogComposer.AddSmallButton("Del", () => InsertFormatTag("<del>", "</del>", dialogComposer), strikeBtn, EnumButtonStyle.Normal);
+            //dialogComposer.AddSmallButton("U", () => InsertFormatTag("<u>", "</u>", dialogComposer), underBtn, EnumButtonStyle.Normal);
+            //dialogComposer.AddSmallButton("Del", () => InsertFormatTag("<del>", "</del>", dialogComposer), strikeBtn, EnumButtonStyle.Normal);
             dialogComposer.AddSmallButton("Big", () => InsertFormatTag("<font size=\"24\">", "</font>", dialogComposer), largeBtn, EnumButtonStyle.Normal);
             dialogComposer.AddSmallButton("Sml", () => InsertFormatTag("<font size=\"12\">", "</font>", dialogComposer), smallBtn, EnumButtonStyle.Normal);
             dialogComposer.AddSmallButton("Link", () => InsertFormatTag("<a href=\"https://example.com\">", "</a>", dialogComposer), linkBtn, EnumButtonStyle.Normal);
+            dialogComposer.AddSmallButton("Hdbk", () => InsertFormatTag("<a href='handbook://item-flint'>", "</a>", dialogComposer), handbookBtn, EnumButtonStyle.Normal);
+            dialogComposer.AddSmallButton("Cmd", () => InsertFormatTag("<a href='command:///kill'>", "</a>", dialogComposer), commandBtn, EnumButtonStyle.Normal);
             dialogComposer.AddSmallButton("Icon", () => InsertFormatTag("<icon name=dice>", "</icon>", dialogComposer), iconBtn, EnumButtonStyle.Normal);
             dialogComposer.AddSmallButton("Item", () => InsertFormatTag("<itemstack floattype=\"left\" type=\"block\" code=\"packeddirt\" rsize=\"1\" offx=\"0\" offy=\"0\">", "", dialogComposer), itemBtn, EnumButtonStyle.Normal);
+            dialogComposer.AddSmallButton("VTML Help", () => { capi.Gui.OpenLink("https://wiki.vintagestory.at/VTML"); return true; }, helpBtn, EnumButtonStyle.Normal);
 
             dialogComposer.AddSmallButton("Ink", () => InsertFormatTag("<font color=\"#332211\">", "</font>", dialogComposer), inkBtn, EnumButtonStyle.Normal);
             dialogComposer.AddSmallButton("Red", () => InsertFormatTag("<font color=\"#b22222\">", "</font>", dialogComposer), redBtn, EnumButtonStyle.Normal);
@@ -148,8 +149,7 @@ namespace NoticeBoard.src.Gui.Windows
             dialogComposer.AddSmallButton("Gold", () => InsertFormatTag("<font color=\"#ffd700\">", "</font>", dialogComposer), goldBtn, EnumButtonStyle.Normal);
 
             dialogComposer.AddSmallButton(Lang.Get("noticeboard:add-notice-window-pin-button"), () => OnSendButtonClicked(dialogComposer), buttonBounds, EnumButtonStyle.Normal);
-
-            dialogComposer.AddStaticText("Enable Preview", CairoFont.WhiteDetailText(), previewTextBounds);
+            dialogComposer.AddStaticText(Lang.Get("noticeboard:add-notice-window-preview-switch"), CairoFont.WhiteDetailText(), previewTextBounds);
 
             dialogComposer.AddSwitch(
                 (state) =>
@@ -185,15 +185,6 @@ namespace NoticeBoard.src.Gui.Windows
 
                 ElementBounds paperBounds = previewInsetBounds.ForkContainingChild(2.0, 2.0, 2.0, 2.0);
 
-                var classicAged = new ParchmentPalette(
-                    "Classic Aged",
-                    inkColor,
-                    [0.82, 0.75, 0.63],
-                    [0.67, 0.60, 0.51],
-                    [0.90, 0.83, 0.68]
-                );
-                dialogComposer.AddInteractiveElement(new ProceduralPaperGuiElement(this.capi, 12345, paperBounds, classicAged, false));
-
                 dialogComposer.BeginClip(previewClipBounds);
                 dialogComposer.AddRichtext("", inkFont, previewContainerBounds, "previewInput");
                 dialogComposer.EndClip();
@@ -202,6 +193,8 @@ namespace NoticeBoard.src.Gui.Windows
                     previewScrollbarBounds,
                     "previewScroll"
                 );
+
+                dialogComposer.AddInteractiveElement(new ProceduralPaperGuiElement(this.capi, 12345, paperBounds, theme, false));
             }
 
             base.SingleComposer = dialogComposer.Compose();
@@ -314,16 +307,34 @@ namespace NoticeBoard.src.Gui.Windows
                 }
             }
 
-          
+            Action<LinkTextComponent> onLinkClicked = (link) =>
+            {
+                var href = link.Href;
 
-            double[] inkColor = [0.24, 0.16, 0.10, 1.0];
-            CairoFont inkFont = CairoFont.WhiteDetailText().WithColor(inkColor).WithFont(this.noticeBoardPacket.BoardProperties.BoardFont).WithFontSize(18f);
+                var scheme = href.Contains("://") ? href.Split(new[] { "://" }, 2, StringSplitOptions.None)[0] : null;
+                if (scheme != null && this.capi.LinkProtocols.ContainsKey(scheme))
+                    this.capi.LinkProtocols[scheme].Invoke(link);
+                else
+                    this.capi.Gui.OpenLink(href);
+            };
+
+            ParchmentPalette theme = ThemeManager.GetCurrentTheme(this.noticeBoardPacket.BoardProperties.BoardTheme);
+            CairoFont inkFont = CairoFont.WhiteDetailText().WithColor(theme.InkColor).WithFont(this.noticeBoardPacket.BoardProperties.BoardFont).WithFontSize(18f);
 
             var previewRichtext = dialogComposer.GetRichtext("previewInput");
 
             if (previewRichtext != null)
             {
-                previewRichtext.Components = VtmlUtil.Richtextify(capi, text, inkFont);
+                RichTextComponentBase[] bodyVtml = VtmlUtil.Richtextify(capi, text, inkFont, onLinkClicked);
+
+                foreach (RichTextComponentBase component in bodyVtml)
+                {
+                    if (component is LinkTextComponent linkComponent)
+                    {
+                        linkComponent.Font = linkComponent.Font.Clone().WithColor(theme.LinkColor);
+                    }
+                }
+                previewRichtext.Components = bodyVtml;
                 previewRichtext.CalcHeightAndPositions();
             }
 

@@ -19,14 +19,14 @@ public static class PositionHelper
 
             if (coordinates.Length >= 3)
             {
-                int.TryParse(coordinates[0], out int x);
-                int.TryParse(coordinates[1], out int y);
-                int.TryParse(coordinates[2], out int z);
+                _ = int.TryParse(coordinates[0], out int x);
+                _ = int.TryParse(coordinates[1], out int y);
+                _ = int.TryParse(coordinates[2], out int z);
 
                 int dim = 0;
                 if (coordinates.Length >= 4)
                 {
-                    int.TryParse(coordinates[3], out dim);
+                    _ = int.TryParse(coordinates[3], out dim);
                 }
 
                 return new BlockPos(x, y, z, dim);

@@ -1,11 +1,37 @@
 {
-    "block-noticeboard-*": "Доска Объявлений",
+  "block-noticeboard-*": "Доска объявлений",
 
-    "main-window-title-bar": "Доска Объявлений",
-    "main-window-add-notice-button": "Добавить Объявление",
+  "main-window-title-bar": "Доска объявлений",
+  "main-window-add-notice-button": "Создать объявление",
+  "main-window-add-document-button": "Прикрепить пергамент",
 
-    "add-notice-window-title": "Напишите ваше объявление.",
-    "add-notice-window-pin-button": "Прикрепить",
+  "main-window-tab-messages": "Сообщения",
+  "main-window-tab-settings": "Настройки",
 
-    "new-notice-proximity-message": "оставил новое объявление на доске по координатам:"
+  "messages-error-missing-board": "Инвентарь доски объявлений отсутствует!",
+  "messages-error-no-item-empty": "Сначала поместите пергамент в слот!",
+  "messages-error-no-item-written": "Поместите подписанный пергамент в слот!",
+  "messages-error-no-text": "Этот пергамент пуст!",
+
+  "settings-board-id": "ID доски:",
+  "settings-board-name": "Название доски:",
+  "settings-board-owner": "Владелец доски:",
+  "settings-board-font": "Шрифт доски:",
+  "settings-board-theme": "Тема доски:",
+  "settings-board-lock": "Заблокировать доску объявлений:",
+  "settings-board-parchment": "Включить пергамент:",
+  "settings-board-particles": "Включить частицы:",
+  "settings-board-proximity": "Включить оповещение по близости:",
+  "settings-board-proximity-channel": "Название канала близости:",
+  "settings-board-proximity-distance": "Дистанция близости:",
+  "settings-board-save": "Сохранить все настройки:",
+
+  "settings-board-not-owner": "(Только владелец может это редактировать)",
+
+  "add-notice-window-title": "Напишите своё объявление",
+  "add-notice-window-pin-button": "Закрепить",
+  "add-notice-window-preview": "Предпросмотр:",
+  "add-notice-window-preview-switch": "Включить предпросмотр",
+
+  "new-notice-proximity-message": "оставил новое объявление на доске "
 }

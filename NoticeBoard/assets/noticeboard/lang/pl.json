@@ -1,11 +1,37 @@
 {
-  "block-noticeboard-*": "Tablica Ogłoszeń",
+  "block-noticeboard-*": "Tablica ogłoszeń",
 
-  "main-window-title-bar": "Tablica Ogłoszeń",
-  "main-window-add-notice": "Dodaj ogłoszenie",
+  "main-window-title-bar": "Tablica ogłoszeń",
+  "main-window-add-notice-button": "Napisz ogłoszenie",
+  "main-window-add-document-button": "Przypnij pergamin",
 
-  "add-notice-window-title": "Wpisz swoje ogłoszenie",
+  "main-window-tab-messages": "Wiadomości",
+  "main-window-tab-settings": "Ustawienia",
+
+  "messages-error-missing-board": "Brakuje ekwipunku tablicy ogłoszeń!",
+  "messages-error-no-item-empty": "Najpierw umieść pergamin w slocie!",
+  "messages-error-no-item-written": "Umieść podpisany pergamin w slocie!",
+  "messages-error-no-text": "Ten pergamin jest pusty!",
+
+  "settings-board-id": "ID tablicy:",
+  "settings-board-name": "Nazwa tablicy:",
+  "settings-board-owner": "Właściciel tablicy:",
+  "settings-board-font": "Czcionka tablicy:",
+  "settings-board-theme": "Motyw tablicy:",
+  "settings-board-lock": "Zablokuj tablicę ogłoszeń:",
+  "settings-board-parchment": "Włącz pergamin:",
+  "settings-board-particles": "Włącz cząsteczki:",
+  "settings-board-proximity": "Włącz proximity:",
+  "settings-board-proximity-channel": "Nazwa kanału proximity:",
+  "settings-board-proximity-distance": "Dystans proximity:",
+  "settings-board-save": "Zapisz wszystkie ustawienia:",
+
+  "settings-board-not-owner": "(Tylko właściciel może to edytować)",
+
+  "add-notice-window-title": "Napisz swoje ogłoszenie",
   "add-notice-window-pin-button": "Przypnij",
+  "add-notice-window-preview": "Podgląd:",
+  "add-notice-window-preview-switch": "Włącz podgląd",
 
-  "new-notice-proximity-message": "przypiął/ła nową wiadomość na tablicy ogłoszeń "
+  "new-notice-proximity-message": "zostawił nowe ogłoszenie na tablicy "
 }

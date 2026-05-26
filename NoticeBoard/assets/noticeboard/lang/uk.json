@@ -2,10 +2,36 @@
   "block-noticeboard-*": "Дошка оголошень",
 
   "main-window-title-bar": "Дошка оголошень",
-  "main-window-add-notice-button": "Додати оголошення",
+  "main-window-add-notice-button": "Створити оголошення",
+  "main-window-add-document-button": "Прикріпити пергамент",
 
-  "add-notice-window-title": "Напишіть повідомлення",
+  "main-window-tab-messages": "Повідомлення",
+  "main-window-tab-settings": "Налаштування",
+
+  "messages-error-missing-board": "Інвентар дошки оголошень відсутній!",
+  "messages-error-no-item-empty": "Спочатку покладіть пергамент у слот!",
+  "messages-error-no-item-written": "Покладіть підписаний пергамент у слот!",
+  "messages-error-no-text": "Цей пергамент порожній!",
+
+  "settings-board-id": "ID дошки:",
+  "settings-board-name": "Назва дошки:",
+  "settings-board-owner": "Власник дошки:",
+  "settings-board-font": "Шрифт дошки:",
+  "settings-board-theme": "Тема дошки:",
+  "settings-board-lock": "Заблокувати дошку оголошень:",
+  "settings-board-parchment": "Увімкнути пергамент:",
+  "settings-board-particles": "Увімкнути частинки:",
+  "settings-board-proximity": "Увімкнути сповіщення за близькістю:",
+  "settings-board-proximity-channel": "Назва каналу близькості:",
+  "settings-board-proximity-distance": "Відстань близькості:",
+  "settings-board-save": "Зберегти всі налаштування:",
+
+  "settings-board-not-owner": "(Лише власник може це редагувати)",
+
+  "add-notice-window-title": "Напишіть своє оголошення",
   "add-notice-window-pin-button": "Закріпити",
+  "add-notice-window-preview": "Попередній перегляд:",
+  "add-notice-window-preview-switch": "Увімкнути попередній перегляд",
 
-  "new-notice-proximity-message": "залишив нове оголошення на дошці в позиції"
+  "new-notice-proximity-message": "залишив нове оголошення на дошці "
 }

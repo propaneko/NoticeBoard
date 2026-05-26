@@ -34,6 +34,40 @@ public class SQLiteHandler
                 .Logger.Error($"Couldnt insertPlayerQuery message: {e.Message}");
         }
     }
+
+    public List<PlayerEntry> GetAllPlayers()
+    {
+        SQLiteDatabase.TryOpenConnection();
+        var players = new List<PlayerEntry>();
+
+        try
+        {
+            string query = @"SELECT p.playerId, p.playerName FROM players p";
+
+            using var command = new SqliteCommand(query, SQLiteConnection);
+
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                players.Add(
+                    new PlayerEntry
+                    {
+                        PlayerUID = reader.GetString(0),
+                        PlayerName = reader.GetString(1),
+                    }
+                );
+            }
+        }
+        catch (Exception e)
+        {
+            NoticeBoardModSystem
+                .getSAPI()
+                .Logger.Error($"[NoticeBoard] Could not get messages: {e.Message}");
+        }
+
+        return players;
+    }
+
     #endregion
 
     #region NoticeBoard
@@ -205,6 +239,27 @@ public class SQLiteHandler
         }
     }
 
+    public void EditBoardTheme(EditBoardTheme packet)
+    {
+        SQLiteDatabase.TryOpenConnection();
+
+        try
+        {
+            string query =
+                "UPDATE noticeBoard SET boardTheme = @boardTheme WHERE boardId = @boardId";
+            using var command = new SqliteCommand(query, SQLiteConnection);
+            command.Parameters.AddWithValue("@boardId", packet.BoardId);
+            command.Parameters.AddWithValue("@boardTheme", packet.BoardTheme);
+            command.ExecuteNonQuery();
+        }
+        catch (Exception e)
+        {
+            NoticeBoardModSystem
+                .getSAPI()
+                .Logger.Error($"[NoticeBoard] Could not update board name: {e.Message}");
+        }
+    }
+
     public void EditEnableProximity(EditEnableProximity packet)
     {
         SQLiteDatabase.TryOpenConnection();
@@ -301,7 +356,7 @@ public class SQLiteHandler
         {
             string query =
                 @"
-                SELECT nb.boardId, nb.boardName, nb.boardFont, nb.ownerPlayerId, nb.pos, nb.isLocked, nb.enableParticles, nb.enableParchment, p.playerName,
+                SELECT nb.boardId, nb.boardName, nb.boardFont, nb.boardTheme, nb.ownerPlayerId, nb.pos, nb.isLocked, nb.enableParticles, nb.enableParchment, p.playerName,
                        nb.enableProximity, nb.proximityChannel, nb.proximityDistance
                 FROM noticeBoard nb
                 LEFT JOIN players p ON p.playerId = nb.ownerPlayerId
@@ -316,17 +371,18 @@ public class SQLiteHandler
                 noticeBoard.BoardId = reader.GetString(0);
                 noticeBoard.BoardName = reader.GetString(1);
                 noticeBoard.BoardFont = reader.GetString(2);
-                noticeBoard.PlayerId = reader.GetString(3);
-                noticeBoard.Pos = reader.GetString(4);
-                noticeBoard.IsLocked = reader.GetInt16(5);
-                noticeBoard.EnableParticles = reader.GetInt16(6);
-                noticeBoard.EnableParchment = reader.GetInt16(7);
-                noticeBoard.PlayerName = reader.IsDBNull(8) ? "Unknown" : reader.GetString(8);
-                noticeBoard.EnableProximity = reader.IsDBNull(9) ? 0 : reader.GetInt16(9);
-                noticeBoard.ProximityChannel = reader.IsDBNull(10)
+                noticeBoard.BoardTheme = reader.GetString(3);
+                noticeBoard.PlayerId = reader.GetString(4);
+                noticeBoard.Pos = reader.GetString(5);
+                noticeBoard.IsLocked = reader.GetInt16(6);
+                noticeBoard.EnableParticles = reader.GetInt16(7);
+                noticeBoard.EnableParchment = reader.GetInt16(8);
+                noticeBoard.PlayerName = reader.IsDBNull(9) ? "Unknown" : reader.GetString(9);
+                noticeBoard.EnableProximity = reader.IsDBNull(10) ? 0 : reader.GetInt16(10);
+                noticeBoard.ProximityChannel = reader.IsDBNull(11)
                     ? "Proximity"
-                    : reader.GetString(10);
-                noticeBoard.ProximityDistance = reader.IsDBNull(11) ? 100 : reader.GetInt16(11);
+                    : reader.GetString(11);
+                noticeBoard.ProximityDistance = reader.IsDBNull(12) ? 100 : reader.GetInt16(12);
             }
 
             return noticeBoard;
@@ -393,6 +449,44 @@ public class SQLiteHandler
             NoticeBoardModSystem
                 .getSAPI()
                 .Logger.Error($"[NoticeBoard] Could not insert message: {e.Message}");
+        }
+    }
+
+    public Message GetMessageById(int messageId)
+    {
+        SQLiteDatabase.TryOpenConnection();
+        var message = new Message();
+
+        try
+        {
+            string query =
+                @"
+                SELECT m.id, m.message, m.senderPlayerId, p.playerName, m.createdAt
+                FROM messages m
+                LEFT JOIN players p ON p.playerId = m.senderPlayerId
+                WHERE m.id = @messageId
+                ";
+
+            using var command = new SqliteCommand(query, SQLiteConnection);
+            command.Parameters.AddWithValue("@messageId", messageId);
+
+            using var reader = command.ExecuteReader();
+            if (reader.Read())
+            {
+                message.Id = reader.GetInt32(0);
+                message.Text = reader.GetString(1);
+                message.PlayerId = reader.GetString(2);
+                message.PlayerName = reader.IsDBNull(3) ? "Unknown" : reader.GetString(3);
+                message.CreatedAt = reader.GetDateTime(4);
+            }
+            return message;
+        }
+        catch (Exception e)
+        {
+            NoticeBoardModSystem
+                .getSAPI()
+                .Logger.Error($"[NoticeBoard] Could not get message: {e.Message}");
+            return null;
         }
     }
 

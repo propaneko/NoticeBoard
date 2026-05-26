@@ -2,10 +2,37 @@
   "block-noticeboard-*": "Notice Board",
 
   "main-window-title-bar": "Notice Board",
-  "main-window-add-notice-button": "Add notice",
+  "main-window-add-notice-button": "Compose notice",
+  "main-window-add-document-button": "Pin Parchment",
+
+  "main-window-tab-messages": "Messages",
+  "main-window-tab-settings": "Settings",
+
+  "messages-error-missing-board": "Notice board inventory missing!",
+  "messages-error-no-item-empty": "Place a parchment in a slot first!",
+  "messages-error-no-item-written": "Place a signed parchment in the slot!",
+  "messages-error-no-text": "This parchment is blank!",
+
+
+  "settings-board-id": "Board ID:",
+  "settings-board-name": "Board Name:",
+  "settings-board-owner": "Board Owner:",
+  "settings-board-font": "Board Font:",
+  "settings-board-theme": "Board Theme:",
+  "settings-board-lock": "Lock Notice Board:",
+  "settings-board-parchment": "Enable Parchment:",
+  "settings-board-particles": "Enable Particles:",
+  "settings-board-proximity": "Enable Proximity Annoucment:",
+  "settings-board-proximity-channel": "Proximity Channel Name:",
+  "settings-board-proximity-distance": "Proximity Distance:",
+  "settings-board-save": "Save All Settings:",
+
+  "settings-board-not-owner": "(Only the owner can edit this)",
 
   "add-notice-window-title": "Write your notice",
   "add-notice-window-pin-button": "Pin",
+  "add-notice-window-preview": "Preview:",
+  "add-notice-window-preview-switch": "Enable Preview",
 
   "new-notice-proximity-message": "left new notice on the board "
 }

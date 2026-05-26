@@ -59,6 +59,15 @@ namespace NoticeBoard.Packets
     }
 
     [ProtoContract]
+    public class PlayerTakeMessage
+    {
+        [ProtoMember(1)]
+        public int MessageId { get; set; }
+        [ProtoMember(2)]
+        public string BoardId { get; set; }
+    }
+
+    [ProtoContract]
     public class PlayerSendMessage
     {
         [ProtoMember(1)]
@@ -163,6 +172,16 @@ namespace NoticeBoard.Packets
 
         [ProtoMember(2)]
         public string BoardFont { get; set; }
+    }
+
+    [ProtoContract]
+    public class EditBoardTheme
+    {
+        [ProtoMember(1)]
+        public string BoardId { get; set; }
+
+        [ProtoMember(2)]
+        public string BoardTheme { get; set; }
     }
 
     [ProtoContract]

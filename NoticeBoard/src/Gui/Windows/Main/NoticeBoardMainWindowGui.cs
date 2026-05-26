@@ -1,6 +1,8 @@
 ﻿using NoticeBoard.BlockType;
+using NoticeBoard.Extensions;
 using NoticeBoard.Packets;
 using NoticeBoard.Utils;
+using System;
 using System.Collections.Generic;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -38,7 +40,8 @@ public partial class NoticeBoardMainWindowGui : GuiDialog
 
     private int activeTab = 0;
     private double lastCalculatedContentHeight = 0.0;
-
+    private float currentScrollY = 0f;
+    private bool isComposing = false;
     public override string ToggleKeyCombinationCode => null;
 
     public NoticeBoardMainWindowGui(
@@ -118,8 +121,10 @@ public partial class NoticeBoardMainWindowGui : GuiDialog
 
     public void ComposeGui()
     {
+        this.isComposing = true;
         capi.Network.GetChannel("noticeboard").SendPacket(new RequestAllPlayers());
         bool isOwner = (this.boardPlayerId == capi.World.Player.PlayerUID);
+        NoticeBoardBlockEntity blockEntity = capi.GetNoticeBoardEntity(this.boardPos);
 
         double dialogWidth = 800;
         double listWidth = 720;
@@ -134,24 +139,29 @@ public partial class NoticeBoardMainWindowGui : GuiDialog
         ElementBounds buttonBoundsAddNotice = ElementBounds.Fixed(
             0,
             GuiStyle.TitleBarHeight + 5.0,
-            120.0,
+            140.0,
             40.0
         );
         ElementBounds slotBounds = ElementBounds.Fixed(
-            128.0,
+            148.0,
             GuiStyle.TitleBarHeight + 1.0,
             200.0,
             48.0
         );
 
         ElementBounds buttonBoundsAddDocument = ElementBounds.Fixed(
-            listWidth - 100 ,
+            listWidth - 100,
             GuiStyle.TitleBarHeight + 25.0,
             140.0,
             40.0
         );
 
-        ElementBounds documentSlotBounds = ElementBounds.Fixed(listWidth - 158.0, GuiStyle.TitleBarHeight + 20.0, 48.0, 48.0);
+        ElementBounds documentSlotBounds = ElementBounds.Fixed(
+            listWidth - 158.0,
+            GuiStyle.TitleBarHeight + 20.0,
+            48.0,
+            48.0
+        );
 
         ElementBounds insetBounds = ElementBounds.Fixed(
             0.0,
@@ -175,6 +185,8 @@ public partial class NoticeBoardMainWindowGui : GuiDialog
             GuiStyle.HalfPadding
         );
 
+        containerBounds.fixedY = -this.currentScrollY;
+
         ElementBounds bgBounds = ElementBounds
             .Fill.WithFixedPadding(GuiStyle.ElementToDialogPadding)
             .WithSizing(ElementSizing.FitToChildren)
@@ -191,8 +203,8 @@ public partial class NoticeBoardMainWindowGui : GuiDialog
         ElementBounds tabBounds = ElementBounds.Fixed(0.0, -32, listWidth, 35.0);
         GuiTab[] tabs =
         [
-            new() { Name = Lang.Get("Messages"), DataInt = 0 },
-            isOwner ? new GuiTab() { Name = Lang.Get("Settings"), DataInt = 1 } : null,
+            new() { Name = Lang.Get("noticeboard:main-window-tab-messages"), DataInt = 0 },
+            isOwner ? new GuiTab() { Name = Lang.Get("noticeboard:main-window-tab-settings"), DataInt = 1 } : null,
         ];
 
         dialogComposer.AddHorizontalTabs(
@@ -207,16 +219,17 @@ public partial class NoticeBoardMainWindowGui : GuiDialog
 
         if (this.activeTab == 0)
         {
-
-            if (
-                capi.World.BlockAccessor.GetBlockEntity(this.boardPos)
-                    is NoticeBoardBlockEntity blockEntity
-                && this.enableParchment
-            )
+            if (blockEntity != null && this.enableParchment)
             {
                 dialogComposer.AddItemSlotGrid(
                     blockEntity.Inventory,
-                    (packet) => capi.Network.SendBlockEntityPacket(boardPos.X, boardPos.Y, boardPos.Z, packet),
+                    (packet) =>
+                        capi.Network.SendBlockEntityPacket(
+                            boardPos.X,
+                            boardPos.Y,
+                            boardPos.Z,
+                            packet
+                        ),
                     1,
                     new int[] { 4 },
                     documentSlotBounds,
@@ -239,13 +252,13 @@ public partial class NoticeBoardMainWindowGui : GuiDialog
                 );
 
                 GuiComposerHelpers.AddSmallButton(
-                   dialogComposer,
-                   "Add Document",
-                   () => this.OnPostDocumentClick(),
-                   buttonBoundsAddDocument,
-                   EnumButtonStyle.Normal,
-                   "addDocumentButton"
-               );
+                    dialogComposer,
+                    Lang.Get("noticeboard:main-window-add-document-button"),
+                    () => this.OnPostDocumentClick(),
+                    buttonBoundsAddDocument,
+                    EnumButtonStyle.Normal,
+                    "addDocumentButton"
+                );
             }
 
             GuiElementInsetHelper.AddInset(dialogComposer, insetBounds, insetDepth, 0.85f);
@@ -254,7 +267,7 @@ public partial class NoticeBoardMainWindowGui : GuiDialog
             GuiElementClipHelpler.EndClip(dialogComposer);
             GuiComposerHelpers.AddVerticalScrollbar(
                 dialogComposer,
-                this.OnNewScrollbarValue,
+                (value) => this.OnNewScrollbarValue(value),
                 scrollbarBounds,
                 "scrollbar"
             );
@@ -267,8 +280,6 @@ public partial class NoticeBoardMainWindowGui : GuiDialog
                 EnumButtonStyle.Normal,
                 "addNoticeButton"
             );
-
-           
 
             PopulateMessagesTab(dialogComposer, insetBounds);
         }
@@ -288,13 +299,36 @@ public partial class NoticeBoardMainWindowGui : GuiDialog
 
         base.SingleComposer = dialogComposer.Compose();
 
+        var slotGrid = base.SingleComposer.GetSlotGrid("costSlot");
+        if (slotGrid != null)
+        {
+            slotGrid.DrawIconHandler = (cr, slotId, x, y, w, h, color) =>
+            {
+                if (blockEntity.Inventory[4].Empty)
+                {
+                    capi.Gui.Icons.DrawIcon(cr, "circle", x + 4, y + 4, w - 8, h - 8,
+                        new double[] { 1, 1, 1, 0.2 });
+                }
+            };
+        }
+
         if (this.activeTab == 0)
         {
             var scrollbar = GuiComposerHelpers.GetScrollbar(base.SingleComposer, "scrollbar");
-            scrollbar?.SetHeights(
-                (float)insetBounds.InnerHeight,
-                (float)this.lastCalculatedContentHeight
-            );
+            if (scrollbar != null)
+            {
+                scrollbar.SetHeights(
+                    (float)insetBounds.fixedHeight,
+                    (float)this.lastCalculatedContentHeight
+                );
+
+                float maxScroll = Math.Max(0, (float)this.lastCalculatedContentHeight - (float)insetBounds.fixedHeight);
+                this.currentScrollY = Math.Min(this.currentScrollY, maxScroll);
+
+                scrollbar.CurrentYPosition = this.currentScrollY;
+
+                OnNewScrollbarValue(this.currentScrollY);
+            }
 
             if (this.isLocked && !isOwner)
             {
@@ -303,5 +337,6 @@ public partial class NoticeBoardMainWindowGui : GuiDialog
                     ?.Enabled = false;
             }
         }
+        this.isComposing = false;
     }
 }

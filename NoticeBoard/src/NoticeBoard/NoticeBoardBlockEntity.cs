@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using NoticeBoard.Database;
+using NoticeBoard.Extensions;
 using NoticeBoard.Packets;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
@@ -148,7 +149,7 @@ public class NoticeBoardBlockEntity : BlockEntityOpenableContainer
     {
         if (Api.World.Side.IsServer())
         {
-            if (Api.World.BlockAccessor.GetBlockEntity(Pos) is NoticeBoardBlockEntity)
+            if (Api.GetNoticeBoardEntity(Pos) is not null)
             {
                 byPlayer.InventoryManager.OpenInventory(this.Inventory);
 

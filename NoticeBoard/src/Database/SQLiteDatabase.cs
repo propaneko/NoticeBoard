@@ -22,7 +22,7 @@ public class SQLiteDatabase
             worldId = "global";
         }
 
-        string modConfigDir = Path.Combine(GamePaths.DataPath, "ModData/noticeboard", worldId);
+        string modConfigDir = Path.Combine(GamePaths.DataPath, "ModData", worldId, "noticeboard");
         if (!Directory.Exists(modConfigDir))
         {
             Directory.CreateDirectory(modConfigDir);
@@ -61,6 +61,8 @@ public class SQLiteDatabase
                 boardId TEXT NOT NULL PRIMARY KEY,
                 boardName TEXT DEFAULT 'Notice Board',
                 boardFont TEXT DEFAULT 'alagard',
+                boardTheme TEXT DEFAULT 'Classic Aged',
+
                 ownerPlayerId TEXT NOT NULL,
                 pos TEXT,
                 isLocked INTEGER DEFAULT 0,

@@ -1,8 +1,10 @@
-﻿using System;
-using NoticeBoard.BlockType;
+﻿using NoticeBoard.BlockType;
 using NoticeBoard.Packets;
+using System;
+using System.Linq;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
+using Vintagestory.API.Config;
 
 namespace NoticeBoard.src.Gui.Windows;
 
@@ -35,7 +37,7 @@ public partial class NoticeBoardMainWindowGui
             is not NoticeBoardBlockEntity blockEntity
         )
         {
-            capi.TriggerIngameError(this, "missing_board", "Notice board inventory missing!");
+            capi.TriggerIngameError(this, "missing_board", Lang.Get("noticeboard:messages-error-missing-board"));
             return false;
         }
 
@@ -52,7 +54,7 @@ public partial class NoticeBoardMainWindowGui
 
         if (validSlot == null)
         {
-            capi.TriggerIngameError(this, "no_item", "Place a parchment in a slot first!");
+            capi.TriggerIngameError(this, "no_item", Lang.Get("noticeboard:messages-error-no-item-empty"));
             return false;
         }
 
@@ -67,7 +69,7 @@ public partial class NoticeBoardMainWindowGui
 
         if (writtenSlot.Empty)
         {
-            capi.TriggerIngameError(this, "no_item", "Place a written parchment in the slot!");
+            capi.TriggerIngameError(this, "no_item", Lang.Get("noticeboard:messages-error-no-item-written"));
             return false;
         }
 
@@ -75,7 +77,7 @@ public partial class NoticeBoardMainWindowGui
 
         if (string.IsNullOrEmpty(textContent))
         {
-            capi.TriggerIngameError(this, "no_text", "This parchment is blank!");
+            capi.TriggerIngameError(this, "no_text", Lang.Get("noticeboard:messages-error-no-text"));
             return false;
         }
 
@@ -83,7 +85,7 @@ public partial class NoticeBoardMainWindowGui
         networkChannel.SendPacket(
             new PlayerSendDocument
             {
-                Document = textContent,
+                Document = "",
                 BoardId = noticeBoardPacket.BoardProperties.BoardId,
                 PlayerId = capi.World.Player.PlayerUID,
             }
@@ -108,6 +110,14 @@ public partial class NoticeBoardMainWindowGui
         return true;
     }
 
+    //private bool TakeMessage(int id)
+    //{
+    //    capi.Network.GetChannel("noticeboard")
+    //        .SendPacket(new PlayerTakeMessage { MessageId = id, BoardId = this.boardId });
+    //    this.GetMessages();
+    //    return true;
+    //}
+
     private bool BumpMessage(int id)
     {
         capi.Network.GetChannel("noticeboard").SendPacket(new PlayerBumpMessage { MessageId = id });
@@ -129,6 +139,11 @@ public partial class NoticeBoardMainWindowGui
 
     private void OnNewScrollbarValue(float value)
     {
+        if (!this.isComposing)
+        {
+            this.currentScrollY = value;
+        }
+
         var content = GuiComposerHelpers.GetContainer(base.SingleComposer, "scroll-content");
         if (content != null)
         {
@@ -139,11 +154,13 @@ public partial class NoticeBoardMainWindowGui
 
     private double CalculateRichtextHeight(RichTextComponentBase[] vtml, double width)
     {
-        ElementBounds dummyBounds = ElementBounds.Fixed(0, 0, width, 0);
+        ElementBounds dummyBounds = ElementBounds.Fixed(0, 0, width - 2.0, 0);
+
         dummyBounds.CalcWorldBounds();
-        GuiElementRichtext dummyElement = new GuiElementRichtext(this.capi, vtml, dummyBounds);
+        GuiElementRichtext dummyElement = new(this.capi, vtml, dummyBounds);
         dummyElement.BeforeCalcBounds();
-        return dummyBounds.fixedHeight;
+
+        return Math.Ceiling(dummyBounds.fixedHeight) + 2.0;
     }
 
     private void PopulateMessagesTab(GuiComposer composer, ElementBounds insetBounds)
@@ -160,27 +177,25 @@ public partial class NoticeBoardMainWindowGui
 
         this.lastCalculatedContentHeight = 0.0;
 
-        double[] inkColor = [0.24, 0.16, 0.10, 1.0];
+        ParchmentPalette theme = ThemeManager.GetCurrentTheme(this.boardTheme);
+
         CairoFont inkFont = CairoFont
             .WhiteDetailText()
-            .WithColor(inkColor)
+            .WithColor(theme.InkColor)
             .WithFont(this.boardFont)
             .WithFontSize(18f);
         CairoFont buttonFont = CairoFont.WhiteDetailText();
 
-        var classicAged = new ParchmentPalette(
-            "Classic Aged",
-            [0.24, 0.16, 0.10, 1.0],
-            [0.82, 0.75, 0.63],
-            [0.67, 0.60, 0.51],
-            [0.90, 0.83, 0.68]
-        );
-
         Action<LinkTextComponent> onLinkClicked = (link) =>
         {
-            this.capi.Gui.OpenLink(link.Href);
+            var href = link.Href;
+
+            var scheme = href.Contains("://") ? href.Split(new[] { "://" }, 2, StringSplitOptions.None)[0] : null;
+            if (scheme != null && this.capi.LinkProtocols.ContainsKey(scheme))
+                this.capi.LinkProtocols[scheme].Invoke(link);
+            else
+                this.capi.Gui.OpenLink(href);
         };
-        ;
 
         if (this.messages != null && this.messages.Count > 0)
         {
@@ -221,8 +236,7 @@ public partial class NoticeBoardMainWindowGui
                 {
                     if (component is LinkTextComponent linkComponent)
                     {
-                        double[] linkColor = new double[] { 0.15, 0.25, 0.45, 1.0 };
-                        linkComponent.Font = linkComponent.Font.Clone().WithColor(linkColor);
+                        linkComponent.Font = linkComponent.Font.Clone().WithColor(theme.LinkColor);
                     }
                 }
 
@@ -291,7 +305,7 @@ public partial class NoticeBoardMainWindowGui
                             "delete",
                             () => this.RemoveMessage(id),
                             deleteButtonBounds,
-                            classicAged
+                            theme
                         ),
                         -1
                     );
@@ -301,7 +315,7 @@ public partial class NoticeBoardMainWindowGui
                             "edit",
                             () => this.EditMessage(id),
                             editButtonBounds,
-                            classicAged
+                            theme
                         ),
                         -1
                     );
@@ -311,7 +325,7 @@ public partial class NoticeBoardMainWindowGui
                             "bump",
                             () => this.BumpMessage(id),
                             bumpButtonBounds,
-                            classicAged
+                            theme
                         ),
                         -1
                     );
@@ -322,7 +336,7 @@ public partial class NoticeBoardMainWindowGui
                     .WithFixedMargin(4.0);
 
                 scrollArea.Add(
-                    new ProceduralPaperGuiElement(this.capi, id, texturePaperBound, classicAged),
+                    new ProceduralPaperGuiElement(this.capi, id, texturePaperBound, theme),
                     -1
                 );
 

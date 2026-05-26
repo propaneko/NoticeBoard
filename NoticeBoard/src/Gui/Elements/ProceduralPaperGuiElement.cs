@@ -6,7 +6,6 @@ using Vintagestory.API.Common;
 public class ProceduralPaperGuiElement : GuiElementTextBase
 {
     private ImageSurface cachedSurface;
-    private static readonly Random globalRand = new Random();
     private readonly int paperSeed;
     private readonly ParchmentPalette parchmentPalette;
     private readonly bool drawJaggedEdges;
