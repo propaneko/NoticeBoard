@@ -17,6 +17,7 @@
   "settings-board-name": "Назва дошки:",
   "settings-board-owner": "Власник дошки:",
   "settings-board-font": "Шрифт дошки:",
+  "settings-board-font-size": "Розмір шрифту дошки:",
   "settings-board-theme": "Тема дошки:",
   "settings-board-lock": "Заблокувати дошку оголошень:",
   "settings-board-parchment": "Увімкнути пергамент:",
@@ -32,6 +33,7 @@
   "add-notice-window-pin-button": "Закріпити",
   "add-notice-window-preview": "Попередній перегляд:",
   "add-notice-window-preview-switch": "Увімкнути попередній перегляд",
+  "add-notice-window-anonymous-switch": "Надіслати анонімно",
 
-  "new-notice-proximity-message": "залишив нове оголошення на дошці "
+  "new-notice-proximity-message": "залишив нове оголошення на дошці"
 }

@@ -24,7 +24,6 @@ namespace NoticeBoard.Events
             channel.SetMessageHandler<PlayerSendMessage>(OnPlayerSendMessage);
             channel.SetMessageHandler<PlayerSendDocument>(OnPlayerSendDocument);
             channel.SetMessageHandler<PlayerEditMessage>(OnPlayerEditMessage);
-            //channel.SetMessageHandler<PlayerTakeMessage>(OnPlayerTakeMessage);
             channel.SetMessageHandler<PlayerBumpMessage>(OnPlayerBumpMessage);
             channel.SetMessageHandler<PlayerRemoveMessage>(OnPlayerRemoveMessage);
             channel.SetMessageHandler<PlayerDestroyNoticeBoard>(OnPlayerDestroyNoticeBoard);
@@ -35,6 +34,7 @@ namespace NoticeBoard.Events
             channel.SetMessageHandler<RequestAllPlayers>(OnRequestAllPlayers);
             channel.SetMessageHandler<EditBoardName>(OnPlayerEditBoardName);
             channel.SetMessageHandler<EditBoardFont>(OnPlayerEditBoardFont);
+            channel.SetMessageHandler<EditBoardFontSize>(OnPlayerEditBoardFontSize);
             channel.SetMessageHandler<EditBoardTheme>(OnPlayerEditBoardTheme);
             channel.SetMessageHandler<EditBoardOwner>(OnPlayerEditBoardOwner);
             channel.SetMessageHandler<EditEnableProximity>(OnPlayerEditEnableProximity);
@@ -115,60 +115,8 @@ namespace NoticeBoard.Events
             );
         }
 
-        //private void OnPlayerTakeMessage(IServerPlayer player, PlayerTakeMessage packet)
-        //{
-        //    Message messageData = db.GetMessageById(packet.MessageId);
-        //    NoticeBoardObject noticeBoard = db.GetBoardData(packet.BoardId);
-        //    BlockPos boardPos = PositionHelper.FromString(noticeBoard.Pos);
-
-        //    if (messageData != null)
-        //    {
-        //        Item parchmentItem = sapi.World.GetItem(
-        //            new AssetLocation("game", "paper-parchment")
-        //        );
-
-        //        if (parchmentItem != null)
-        //        {
-        //            ItemStack parchmentStack = new ItemStack(parchmentItem);
-        //            parchmentStack.Attributes.SetString("text", messageData.Text);
-        //            parchmentStack.Attributes.SetString("signedby", messageData.PlayerName);
-        //            player.InventoryManager.TryGiveItemstack(parchmentStack, true);
-
-        //            if (parchmentStack.StackSize > 0)
-        //            {
-        //                Vec3d dropPos = new Vec3d(
-        //                    boardPos.X + 0.5,
-        //                    boardPos.Y + 0.5,
-        //                    boardPos.Z + 0.5
-        //                );
-        //                Vec3d velocity = new Vec3d(
-        //                    (sapi.World.Rand.NextDouble() - 0.5) * 0.1,
-        //                    0.1,
-        //                    (sapi.World.Rand.NextDouble() - 0.5) * 0.1
-        //                );
-
-        //                sapi.World.SpawnItemEntity(parchmentStack, dropPos, velocity);
-        //            }
-        //        }
-        //    }
-
-        //    db.DeleteMessage(packet.MessageId);
-
-        //    sapi.World.PlaySoundAt(
-        //        new AssetLocation("noticeboard:sounds/effect/delete.ogg"),
-        //        boardPos.X,
-        //        boardPos.Y,
-        //        boardPos.Z,
-        //        null,
-        //        true,
-        //        32.0f,
-        //        0.1f + (float)sapi.World.Rand.NextDouble() * 0.2f
-        //    );
-        //}
-
         private void OnPlayerEditMessage(IServerPlayer player, PlayerEditMessage packet)
         {
-
             NoticeBoardObject noticeBoard = db.GetBoardData(packet.BoardId);
             BlockPos boardPos = PositionHelper.FromString(noticeBoard.Pos);
 
@@ -183,12 +131,26 @@ namespace NoticeBoard.Events
                 0.9f + (float)sapi.World.Rand.NextDouble() * 0.2f
             );
           
-            db.EditMessageById(packet.Id, packet.Message);
+            db.EditMessageById(packet.Id, packet.Message, packet.IsAnonymous);
         }
 
         private void OnPlayerBumpMessage(IServerPlayer player, PlayerBumpMessage packet)
         {
+            NoticeBoardObject noticeBoard = db.GetBoardData(packet.BoardId);
+            BlockPos boardPos = PositionHelper.FromString(noticeBoard.Pos);
+
             db.BumpMessageById(packet.MessageId);
+
+            sapi.World.PlaySoundAt(
+               new AssetLocation("noticeboard:sounds/effect/bump.ogg"),
+               boardPos.X,
+               boardPos.Y,
+               boardPos.Z,
+               null,
+               true,
+               32.0f,
+               0.1f + (float)sapi.World.Rand.NextDouble() * 0.2f
+           );
         }
 
         private void OnPlayerEditIsLocked(IServerPlayer player, EditIsLocked packet)
@@ -221,6 +183,11 @@ namespace NoticeBoard.Events
             db.EditBoardFont(packet);
         }
 
+        private void OnPlayerEditBoardFontSize(IServerPlayer player, EditBoardFontSize packet)
+        {
+            db.EditBoardFontSize(packet);
+        }
+
         private void OnPlayerEditBoardTheme(IServerPlayer player, EditBoardTheme packet)
         {
             db.EditBoardTheme(packet);
@@ -247,8 +214,8 @@ namespace NoticeBoard.Events
         private void OnPlayerSendMessage(IServerPlayer player, PlayerSendMessage packet)
         {
             NoticeBoardObject noticeBoard = db.GetBoardData(packet.BoardId);
-
             BlockPos boardPos = PositionHelper.FromString(noticeBoard.Pos);
+            packet.TotalHours = sapi.World.Calendar.TotalHours;
 
             NoticeBoardBlockEntity blockEntity = sapi.GetNoticeBoardEntity(
                 PositionHelper.FromString(noticeBoard.Pos)
@@ -271,7 +238,7 @@ namespace NoticeBoard.Events
 
                     string path = slot.Itemstack.Collectible.Code.Path;
                     bool isParchment =
-                        path == "paper-parchment" || path.StartsWith("paper-parchment-");
+                        path == "paper-parchment" || path.StartsWith("paper-parchment-") || path == "papyrus-paper" || path.StartsWith("papyrus-paper-");
 
                     if (isParchment)
                     {
@@ -327,6 +294,7 @@ namespace NoticeBoard.Events
         {
             NoticeBoardObject noticeBoard = db.GetBoardData(packet.BoardId);
             BlockPos boardPos = PositionHelper.FromString(noticeBoard.Pos);
+            packet.TotalHours = sapi.World.Calendar.TotalHours;
 
             NoticeBoardBlockEntity blockEntity = sapi.GetNoticeBoardEntity(
                 PositionHelper.FromString(noticeBoard.Pos)
@@ -369,8 +337,9 @@ namespace NoticeBoard.Events
             }
 
             packet.Document = documentText;
+            packet.PlayerId = db.GetPlayerByName(authorName)?.PlayerUID ?? player.PlayerUID;
 
-            db.InsertMessage(packet, authorName);
+            db.InsertMessage(packet);
 
             sapi.World.PlaySoundAt(
                 new AssetLocation("noticeboard:sounds/effect/new_message.ogg"),
@@ -430,30 +399,6 @@ namespace NoticeBoard.Events
         private void OnRequestAllPlayers(IServerPlayer player, RequestAllPlayers packet)
         {
             List<PlayerEntry> players = db.GetAllPlayers();
-                //new List<PlayerEntry>();
-
-            //foreach (var p in sapi.World.AllPlayers)
-            //{
-            //    players.Add(new PlayerEntry { PlayerUID = p.PlayerUID, PlayerName = p.PlayerName });
-            //}
-
-            //foreach (var uid in NoticeBoardModSystem.getSAPI().PlayerData.PlayerDataByUid)
-            //{
-            //    var pdata = sapi.PlayerData.GetPlayerDataByUid(uid.Value.PlayerUID);
-            //    if (pdata == null)
-            //        continue;
-
-            //    if (!players.Exists(x => x.PlayerUID == uid.Value.PlayerUID))
-            //    {
-            //        players.Add(
-            //            new PlayerEntry
-            //            {
-            //                PlayerUID = uid.Value.PlayerUID,
-            //                PlayerName = pdata.LastKnownPlayername,
-            //            }
-            //        );
-            //    }
-            //}
 
             sapi.Network.GetChannel("noticeboard")
                 .SendPacket(new ResponseAllPlayers { Players = players }, player);

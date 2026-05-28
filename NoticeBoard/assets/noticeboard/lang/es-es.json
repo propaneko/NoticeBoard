@@ -17,6 +17,7 @@
   "settings-board-name": "Nombre del tablón:",
   "settings-board-owner": "Propietario del tablón:",
   "settings-board-font": "Fuente del tablón:",
+  "settings-board-font-size": "Tamaño de fuente del tablón:",
   "settings-board-theme": "Tema del tablón:",
   "settings-board-lock": "Bloquear tablón de anuncios:",
   "settings-board-parchment": "Habilitar pergamino:",
@@ -24,7 +25,7 @@
   "settings-board-proximity": "Habilitar anuncio por proximidad:",
   "settings-board-proximity-channel": "Nombre del canal de proximidad:",
   "settings-board-proximity-distance": "Distancia de proximidad:",
-  "settings-board-save": "Guardar toda la configuración:",
+  "settings-board-save": "Guardar toda la configuración",
 
   "settings-board-not-owner": "(Solo el propietario puede editar esto)",
 
@@ -32,6 +33,7 @@
   "add-notice-window-pin-button": "Fijar",
   "add-notice-window-preview": "Vista previa:",
   "add-notice-window-preview-switch": "Habilitar vista previa",
+  "add-notice-window-anonymous-switch": "Enviar anónimamente",
 
-  "new-notice-proximity-message": "dejó un nuevo anuncio en el tablón "
+  "new-notice-proximity-message": "dejó un nuevo anuncio en el tablón"
 }

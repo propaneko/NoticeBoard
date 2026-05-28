@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using HarmonyLib;
 using NoticeBoard.Packets;
 using Vintagestory.API.Client;
 using Vintagestory.API.Config;
@@ -13,15 +14,20 @@ public partial class NoticeBoardMainWindowGui
     {
         string fontsDir = Path.Combine(
             capi.ModLoader.GetMod("noticeboard").SourcePath,
-            "assets/noticeboard/fonts"
+            "assets",
+            "noticeboard",
+            "fonts"
         );
 
         string[] fontPaths = Directory.Exists(fontsDir)
-            ? [.. Directory.GetFiles(fontsDir, "*.ttf"), .. Directory.GetFiles(fontsDir, "*.otf")]
+            ? [.. Directory.GetFiles(fontsDir, "*.ttf")]
             : [];
 
-        string[] fontValues = [.. fontPaths.Select(Path.GetFileNameWithoutExtension)];
+        string[] fontValues = NoticeBoardModSystem.ParseFontNames([.. fontPaths.Select(Path.GetFileNameWithoutExtension)]).ToArray();
         string[] fontFileNames = [.. fontPaths.Select(Path.GetFileNameWithoutExtension)];
+
+        fontValues = fontValues.Prepend("Default").ToArray();
+        fontFileNames = fontFileNames.Prepend("Default").ToArray();
 
         int checkboxWidth = 50;
         int inputWidth = 200;
@@ -38,7 +44,11 @@ public partial class NoticeBoardMainWindowGui
             .WithFixedPosition(insetBounds.fixedX + 300, insetBounds.fixedY + 10);
 
         // Board ID
-        composer.AddStaticText(Lang.Get("noticeboard:settings-board-id"), CairoFont.WhiteSmallText(), leftBounds);
+        composer.AddStaticText(
+            Lang.Get("noticeboard:settings-board-id"),
+            CairoFont.WhiteSmallText(),
+            leftBounds
+        );
         composer.AddStaticText(
             this.boardId ?? "Unknown",
             CairoFont.WhiteSmallText(),
@@ -48,209 +58,195 @@ public partial class NoticeBoardMainWindowGui
         // Board Name
         leftBounds = leftBounds.BelowCopy(0, 10);
         rightBounds = rightBounds.BelowCopy(0, 5).WithFixedSize(inputWidth, 30);
-        composer.AddStaticText(Lang.Get("noticeboard:settings-board-name"), CairoFont.WhiteSmallText(), leftBounds);
-        if (isOwner)
-        {
-            composer.AddTextInput(
-                rightBounds,
-                (text) =>
-                {
-                    this.boardName = text;
-                    UpdateDirtyState();
-                },
-                CairoFont.WhiteSmallText(),
-                "boardNameInput"
-            );
-            composer.GetTextInput("boardNameInput").SetValue(this.boardName ?? "");
-        }
-        else
-        {
-            composer.AddStaticText(
-                Lang.Get("noticeboard:settings-board-not-owner"),
-                CairoFont.WhiteSmallText(),
-                rightBounds.FlatCopy().WithFixedWidth(300)
-            );
-        }
+        composer.AddStaticText(
+            Lang.Get("noticeboard:settings-board-name"),
+            CairoFont.WhiteSmallText(),
+            leftBounds
+        );
+
+        composer.AddTextInput(
+            rightBounds,
+            (text) =>
+            {
+                this.boardName = text;
+                UpdateDirtyState();
+            },
+            CairoFont.WhiteSmallText(),
+            "boardNameInput"
+        );
+        composer.GetTextInput("boardNameInput").SetValue(this.boardName ?? "");
 
         // Board Owner
         leftBounds = leftBounds.BelowCopy(0, 10);
         rightBounds = rightBounds.BelowCopy(0, 10).WithFixedSize(inputWidth, 30);
-        composer.AddStaticText(Lang.Get("noticeboard:settings-board-owner"), CairoFont.WhiteSmallText(), leftBounds);
-        if (isOwner)
-        {
-            composer.AddDropDown(
-                [.. players.Select(p => p.PlayerUID)],
-                [.. players.Select(p => p.PlayerName)],
-                players.FindIndex(p => p.PlayerUID == boardPlayerId),
-                (code, selected) =>
-                {
-                    this.pendingOwnerUid = code;
-                    UpdateDirtyState();
-                },
-                rightBounds,
-                "ownerDropdown"
-            );
-        }
-        else
-        {
-            composer.AddStaticText(
-                Lang.Get("noticeboard:settings-board-not-owner"),
-                CairoFont.WhiteSmallText(),
-                rightBounds.FlatCopy().WithFixedWidth(300)
-            );
-        }
+        composer.AddStaticText(
+            Lang.Get("noticeboard:settings-board-owner"),
+            CairoFont.WhiteSmallText(),
+            leftBounds
+        );
+
+        composer.AddDropDown(
+            [.. players.Select(p => p.PlayerUID)],
+            [.. players.Select(p => p.PlayerName)],
+            players.FindIndex(p => p.PlayerUID == boardPlayerId),
+            (code, selected) =>
+            {
+                this.pendingOwnerUid = code;
+                UpdateDirtyState();
+            },
+            rightBounds,
+            "ownerDropdown"
+        );
 
         // Board Font
         leftBounds = leftBounds.BelowCopy(0, 10);
         rightBounds = rightBounds.BelowCopy(0, 10).WithFixedSize(inputWidth, 30);
-        composer.AddStaticText(Lang.Get("noticeboard:settings-board-font"), CairoFont.WhiteSmallText(), leftBounds);
-        if (isOwner)
+        composer.AddStaticText(
+            Lang.Get("noticeboard:settings-board-font"),
+            CairoFont.WhiteSmallText(),
+            leftBounds
+        );
+
+        if (fontValues.Length > 0)
         {
-            if (fontValues.Length > 0)
-            {
-                int selectedFontIndex = Array.IndexOf(fontValues, this.boardFont ?? fontValues[0]);
-                if (selectedFontIndex < 0)
-                    selectedFontIndex = 0;
-                composer.AddDropDown(
-                    fontValues,
-                    fontFileNames,
-                    selectedFontIndex,
-                    (value, selected) =>
-                    {
-                        this.boardFont = value;
-                        UpdateDirtyState();
-                    },
-                    rightBounds,
-                    "fontDropdown"
-                );
-            }
-            else
-            {
-                composer.AddStaticText("No fonts found.", CairoFont.WhiteSmallText(), rightBounds);
-            }
+            int selectedFontIndex = Array.IndexOf(fontValues, this.boardFont ?? fontValues[0]);
+            if (selectedFontIndex < 0)
+                selectedFontIndex = 0;
+            composer.AddDropDown(
+                fontValues,
+                fontFileNames,
+                selectedFontIndex,
+                (value, selected) =>
+                {
+                    this.boardFont = value;
+                    UpdateDirtyState();
+                },
+                rightBounds,
+                "fontDropdown"
+            );
         }
         else
         {
-            composer.AddStaticText(
-                Lang.Get("noticeboard:settings-board-not-owner"),
-                CairoFont.WhiteSmallText(),
-                rightBounds.FlatCopy().WithFixedWidth(300)
-            );
+            composer.AddStaticText("No fonts found.", CairoFont.WhiteSmallText(), rightBounds);
         }
+
+        // Board Font Size
+        leftBounds = leftBounds.BelowCopy(0, 10);
+        rightBounds = rightBounds.BelowCopy(0, 10).WithFixedSize(sliderWidth, 30);
+
+        this.pendingFontSize = Math.Max(10, this.boardFontSize);
+
+        composer.AddDynamicText(
+            $"{Lang.Get("noticeboard:settings-board-font-size")} {this.pendingFontSize}",
+            CairoFont.WhiteSmallText(),
+            leftBounds,
+            "fontSizeLabel"
+        );
+
+        composer.AddSlider(
+            (newValue) =>
+            {
+                this.pendingFontSize = newValue;
+                composer
+                    .GetDynamicText("fontSizeLabel")
+                    .SetNewText($"{Lang.Get("noticeboard:settings-board-font-size")} {newValue}");
+                UpdateDirtyState();
+                return true;
+            },
+            rightBounds,
+            "fontSizeSlider"
+        );
+        composer.GetSlider("fontSizeSlider").SetValues((int)this.pendingFontSize, 10, 60, 1);
 
         // Board Theme
         leftBounds = leftBounds.BelowCopy(0, 10);
         rightBounds = rightBounds.BelowCopy(0, 10).WithFixedSize(inputWidth, 30);
-        composer.AddStaticText(Lang.Get("noticeboard:settings-board-theme"), CairoFont.WhiteSmallText(), leftBounds);
-        if (isOwner)
-        {
-            string[] themeNames = ThemeManager.GetThemeNames();
-            int selectedThemeIndex = Array.IndexOf(
-                themeNames,
-                this.boardTheme ?? (themeNames.Length > 0 ? themeNames[0] : "")
-            );
-            if (selectedThemeIndex < 0)
-                selectedThemeIndex = 0;
+        composer.AddStaticText(
+            Lang.Get("noticeboard:settings-board-theme"),
+            CairoFont.WhiteSmallText(),
+            leftBounds
+        );
 
-            composer.AddDropDown(
-                themeNames,
-                themeNames,
-                selectedThemeIndex,
-                (code, selected) =>
-                {
-                    this.boardTheme = code;
-                    UpdateDirtyState();
-                },
-                rightBounds,
-                "themeDropdown"
-            );
-        }
-        else
-        {
-            composer.AddStaticText(
-                Lang.Get("noticeboard:settings-board-not-owner"),
-                CairoFont.WhiteSmallText(),
-                rightBounds.FlatCopy().WithFixedWidth(300)
-            );
-        }
+        string[] themeNames = ThemeManager.GetThemeNames();
+        int selectedThemeIndex = Array.IndexOf(
+            themeNames,
+            this.boardTheme ?? (themeNames.Length > 0 ? themeNames[0] : "")
+        );
+        if (selectedThemeIndex < 0)
+            selectedThemeIndex = 0;
+
+        composer.AddDropDown(
+            themeNames,
+            themeNames,
+            selectedThemeIndex,
+            (code, selected) =>
+            {
+                this.boardTheme = code;
+                UpdateDirtyState();
+            },
+            rightBounds,
+            "themeDropdown"
+        );
 
         // Lock Notice Board
         leftBounds = leftBounds.BelowCopy(0, 10);
         rightBounds = rightBounds.BelowCopy(0, 10).WithFixedSize(checkboxWidth, 30);
-        composer.AddStaticText(Lang.Get("noticeboard:settings-board-lock"), CairoFont.WhiteSmallText(), leftBounds);
-        if (isOwner)
-        {
-            composer.AddSwitch(
-                (state) =>
-                {
-                    this.isLocked = state;
-                    UpdateDirtyState();
-                },
-                rightBounds,
-                "lockSwitch"
-            );
-            composer.GetSwitch("lockSwitch").On = this.isLocked;
-        }
-        else
-        {
-            composer.AddStaticText(
-                Lang.Get("noticeboard:settings-board-not-owner"),
-                CairoFont.WhiteSmallText(),
-                rightBounds.FlatCopy().WithFixedWidth(300)
-            );
-        }
+        composer.AddStaticText(
+            Lang.Get("noticeboard:settings-board-lock"),
+            CairoFont.WhiteSmallText(),
+            leftBounds
+        );
+
+        composer.AddSwitch(
+            (state) =>
+            {
+                this.isLocked = state;
+                UpdateDirtyState();
+            },
+            rightBounds,
+            "lockSwitch"
+        );
+        composer.GetSwitch("lockSwitch").On = this.isLocked;
 
         // Enable Parchment
         leftBounds = leftBounds.BelowCopy(0, 10);
         rightBounds = rightBounds.BelowCopy(0, 10).WithFixedSize(checkboxWidth, 30);
-        composer.AddStaticText(Lang.Get("noticeboard:settings-board-parchment"), CairoFont.WhiteSmallText(), leftBounds);
-        if (isOwner)
-        {
-            composer.AddSwitch(
-                (state) =>
-                {
-                    this.enableParchment = state;
-                    UpdateDirtyState();
-                },
-                rightBounds,
-                "parchmentSwitch"
-            );
-            composer.GetSwitch("parchmentSwitch").On = this.enableParchment;
-        }
-        else
-        {
-            composer.AddStaticText(
-                Lang.Get("noticeboard:settings-board-not-owner"),
-                CairoFont.WhiteSmallText(),
-                rightBounds.FlatCopy().WithFixedWidth(300)
-            );
-        }
+        composer.AddStaticText(
+            Lang.Get("noticeboard:settings-board-parchment"),
+            CairoFont.WhiteSmallText(),
+            leftBounds
+        );
+
+        composer.AddSwitch(
+            (state) =>
+            {
+                this.enableParchment = state;
+                UpdateDirtyState();
+            },
+            rightBounds,
+            "parchmentSwitch"
+        );
+        composer.GetSwitch("parchmentSwitch").On = this.enableParchment;
 
         // Enable Particles
         leftBounds = leftBounds.BelowCopy(0, 10);
         rightBounds = rightBounds.BelowCopy(0, 10).WithFixedSize(checkboxWidth, 30);
-        composer.AddStaticText(Lang.Get("noticeboard:settings-board-particles"), CairoFont.WhiteSmallText(), leftBounds);
-        if (isOwner)
-        {
-            composer.AddSwitch(
-                (state) =>
-                {
-                    this.enableParticles = state;
-                    UpdateDirtyState();
-                },
-                rightBounds,
-                "particlesSwitch"
-            );
-            composer.GetSwitch("particlesSwitch").On = this.enableParticles;
-        }
-        else
-        {
-            composer.AddStaticText(
-                Lang.Get("noticeboard:settings-board-not-owner"),
-                CairoFont.WhiteSmallText(),
-                rightBounds.FlatCopy().WithFixedWidth(300)
-            );
-        }
+        composer.AddStaticText(
+            Lang.Get("noticeboard:settings-board-particles"),
+            CairoFont.WhiteSmallText(),
+            leftBounds
+        );
+
+        composer.AddSwitch(
+            (state) =>
+            {
+                this.enableParticles = state;
+                UpdateDirtyState();
+            },
+            rightBounds,
+            "particlesSwitch"
+        );
+        composer.GetSwitch("particlesSwitch").On = this.enableParticles;
 
         if (isProximityLoaded)
         {
@@ -262,95 +258,65 @@ public partial class NoticeBoardMainWindowGui
                 CairoFont.WhiteSmallText(),
                 leftBounds
             );
-            if (isOwner)
-            {
-                composer.AddSwitch(
-                    (state) =>
-                    {
-                        this.enableProximityMessage = state;
-                        UpdateDirtyState();
-                    },
-                    rightBounds,
-                    "proximitySwitch"
-                );
-                composer.GetSwitch("proximitySwitch").On = this.enableProximityMessage;
-            }
-            else
-            {
-                composer.AddStaticText(
-                    Lang.Get("noticeboard:settings-board-not-owner"),
-                    CairoFont.WhiteSmallText(),
-                    rightBounds.FlatCopy().WithFixedWidth(300)
-                );
-            }
 
-            // Proximity Channel Name
-            leftBounds = leftBounds.BelowCopy(0, 10);
-            rightBounds = rightBounds.BelowCopy(0, 10).WithFixedSize(inputWidth, 30);
-            composer.AddStaticText(
-                Lang.Get("noticeboard:settings-board-proximity-channel"),
-                CairoFont.WhiteSmallText(),
-                leftBounds
+            composer.AddSwitch(
+                (state) =>
+                {
+                    this.enableProximityMessage = state;
+                    UpdateDirtyState();
+                },
+                rightBounds,
+                "proximitySwitch"
             );
-            if (isOwner)
-            {
-                composer.AddTextInput(
-                    rightBounds,
-                    (text) =>
-                    {
-                        this.proximityChannel = text;
-                        UpdateDirtyState();
-                    },
-                    CairoFont.WhiteSmallText(),
-                    "channelInput"
-                );
-                composer.GetTextInput("channelInput").SetValue(this.proximityChannel ?? "");
-            }
-            else
-            {
-                composer.AddStaticText(
-                    Lang.Get("noticeboard:settings-board-not-owner"),
-                    CairoFont.WhiteSmallText(),
-                    rightBounds.FlatCopy().WithFixedWidth(300)
-                );
-            }
-
-            // Proximity Distance
-            leftBounds = leftBounds.BelowCopy(0, 10);
-            rightBounds = rightBounds.BelowCopy(0, 10).WithFixedSize(sliderWidth, 30);
-            this.pendingDistance = (int)Math.Max(1, this.proximityDistance);
-            composer.AddDynamicText(
-                $"${Lang.Get("noticeboard:settings-board-proximity-distance")} {this.pendingDistance}",
-                CairoFont.WhiteSmallText(),
-                leftBounds,
-                "distanceLabel"
-            );
-            if (isOwner)
-            {
-                composer.AddSlider(
-                    (newValue) =>
-                    {
-                        this.pendingDistance = newValue;
-                        composer
-                            .GetDynamicText("distanceLabel")
-                            .SetNewText($"Proximity Distance: {newValue}");
-                        UpdateDirtyState();
-                        return true;
-                    },
-                    rightBounds,
-                    "distanceSlider"
-                );
-                composer.GetSlider("distanceSlider").SetValues(this.pendingDistance, 1, 1000, 1);
-            }
-            else
-            {
-                composer.AddStaticText(
-                    Lang.Get("noticeboard:settings-board-not-owner"),
-                    CairoFont.WhiteSmallText(),
-                    rightBounds.FlatCopy().WithFixedWidth(300)
-                );
-            }
+            composer.GetSwitch("proximitySwitch").On = this.enableProximityMessage;
         }
+
+        // Proximity Channel Name
+        leftBounds = leftBounds.BelowCopy(0, 10);
+        rightBounds = rightBounds.BelowCopy(0, 10).WithFixedSize(inputWidth, 30);
+        composer.AddStaticText(
+            Lang.Get("noticeboard:settings-board-proximity-channel"),
+            CairoFont.WhiteSmallText(),
+            leftBounds
+        );
+
+        composer.AddTextInput(
+            rightBounds,
+            (text) =>
+            {
+                this.proximityChannel = text;
+                UpdateDirtyState();
+            },
+            CairoFont.WhiteSmallText(),
+            "channelInput"
+        );
+        composer.GetTextInput("channelInput").SetValue(this.proximityChannel ?? "");
+
+        // Proximity Distance
+        leftBounds = leftBounds.BelowCopy(0, 10);
+        rightBounds = rightBounds.BelowCopy(0, 10).WithFixedSize(sliderWidth, 30);
+        this.pendingDistance = (int)Math.Max(1, this.proximityDistance);
+        composer.AddDynamicText(
+            $"{Lang.Get("noticeboard:settings-board-proximity-distance")} {this.pendingDistance}",
+            CairoFont.WhiteSmallText(),
+            leftBounds,
+            "distanceLabel"
+        );
+
+        composer.AddSlider(
+            (newValue) =>
+            {
+                this.pendingDistance = newValue;
+                composer
+                    .GetDynamicText("distanceLabel")
+                    .SetNewText($"Proximity Distance: {newValue}");
+                UpdateDirtyState();
+                return true;
+            },
+            rightBounds,
+            "distanceSlider"
+        );
+        composer.GetSlider("distanceSlider").SetValues(this.pendingDistance, 1, 1000, 1);
 
         // Save Button
         ElementBounds btnSaveAllBounds = leftBounds.BelowCopy(0, 20).WithFixedSize(160, 30);
@@ -376,6 +342,7 @@ public partial class NoticeBoardMainWindowGui
             || (this.proximityChannel != p.ProximityChannel)
             || (this.boardName != p.BoardName)
             || (this.boardFont != p.BoardFont)
+            || (this.pendingFontSize != p.BoardFontSize)
             || (this.boardTheme != p.BoardTheme)
             || (this.pendingDistance != p.ProximityDistance)
             || (!string.IsNullOrEmpty(this.pendingOwnerUid) && this.pendingOwnerUid != p.PlayerId);
@@ -430,6 +397,13 @@ public partial class NoticeBoardMainWindowGui
                 new EditBoardFont { BoardId = this.boardId, BoardFont = this.boardFont }
             );
             p.BoardFont = this.boardFont;
+        }
+        if (this.pendingFontSize != p.BoardFontSize)
+        {
+            channel.SendPacket(
+                new EditBoardFontSize { BoardId = this.boardId, BoardFontSize = this.pendingFontSize }
+            );
+            p.BoardFontSize = this.pendingFontSize;
         }
         if (this.boardTheme != p.BoardTheme)
         {
@@ -495,6 +469,7 @@ public partial class NoticeBoardMainWindowGui
         this.enableProximityMessage = p.EnableProximity != 0;
         this.proximityChannel = p.ProximityChannel;
         this.pendingDistance = (int)p.ProximityDistance;
+        this.pendingFontSize = p.BoardFontSize;
         this.pendingOwnerUid = p.PlayerId;
         this.isDirty = false;
     }

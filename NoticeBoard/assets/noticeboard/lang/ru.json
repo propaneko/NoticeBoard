@@ -17,6 +17,7 @@
   "settings-board-name": "Название доски:",
   "settings-board-owner": "Владелец доски:",
   "settings-board-font": "Шрифт доски:",
+  "settings-board-font-size": "Размер шрифта доски:",
   "settings-board-theme": "Тема доски:",
   "settings-board-lock": "Заблокировать доску объявлений:",
   "settings-board-parchment": "Включить пергамент:",
@@ -32,6 +33,7 @@
   "add-notice-window-pin-button": "Закрепить",
   "add-notice-window-preview": "Предпросмотр:",
   "add-notice-window-preview-switch": "Включить предпросмотр",
+  "add-notice-window-anonymous-switch": "Отправить анонимно",
 
-  "new-notice-proximity-message": "оставил новое объявление на доске "
+  "new-notice-proximity-message": "оставил новое объявление на доске"
 }

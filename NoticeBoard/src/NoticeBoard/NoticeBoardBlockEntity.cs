@@ -22,10 +22,11 @@ public class NoticeBoardSlot : ItemSlot
         if (sourceSlot?.Itemstack == null)
             return false;
 
-        return sourceSlot.Itemstack.Collectible.Code.Path == "paper-parchment";
+        return sourceSlot.Itemstack.Collectible.Code.Path == "paper-parchment"
+            || sourceSlot.Itemstack.Collectible.Code.Path == "papyrus-paper";
     }
 
-    public override int MaxSlotStackSize => 32;
+    public override int MaxSlotStackSize => 64;
 }
 
 public class NoticeBoardBlockEntity : BlockEntityOpenableContainer
@@ -49,7 +50,7 @@ public class NoticeBoardBlockEntity : BlockEntityOpenableContainer
     private long lastUnreadCacheUpdate = 0;
     private long lastBoardPropertiesCacheUpdate = 0;
 
-    private readonly SQLiteHandler db = new();
+    private SQLiteHandler db;
 
     private InventoryGeneric inventory;
 
@@ -76,6 +77,8 @@ public class NoticeBoardBlockEntity : BlockEntityOpenableContainer
 
         if (!Api.World.Side.IsServer())
             return;
+
+        db = new SQLiteHandler();
 
         if (!string.IsNullOrEmpty(uniqueID))
         {
@@ -184,71 +187,90 @@ public class NoticeBoardBlockEntity : BlockEntityOpenableContainer
         if (string.IsNullOrEmpty(uniqueID))
             return;
 
+        if (!Api.World.Side.IsServer())
+            return;
+
+        List<IServerPlayer> nearbyPlayers = new List<IServerPlayer>();
+        foreach (IServerPlayer player in Api.World.AllOnlinePlayers)
+        {
+            if (player.ConnectionState != EnumClientState.Playing)
+                continue;
+
+            if (player.Entity.Pos.SquareDistanceTo(Pos.ToVec3d()) <= 32 * 32)
+            {
+                nearbyPlayers.Add(player);
+            }
+        }
+
+        if (nearbyPlayers.Count == 0)
+            return;
+
         UpdateMessageCountCache();
         UpdateBoardPropertiesCache();
 
         double messageCount = cachedMessageCount;
-
-        double divisionMessageNumbers =
-            messageCount / NoticeBoardModSystem.getConfig().DivisionForPapersOnBoard;
-
-        divisionMessageNumbers = Math.Min(divisionMessageNumbers, 6);
-
-        divisionMessageNumbers = Math.Floor(divisionMessageNumbers);
+        double divisionMessageNumbers = Math.Min(Math.Floor(messageCount / NoticeBoardModSystem.getConfig().DivisionForPapersOnBoard), 6);
 
         if (Block is NoticeBoardBlock myBlock)
         {
-            myBlock.ChangeBlockShape(
-                Api.World,
-                Pos,
-                (int)(messageCount == 1 ? messageCount : divisionMessageNumbers)
-            );
+            myBlock.ChangeBlockShape(Api.World, Pos, (int)(messageCount == 1 ? messageCount : divisionMessageNumbers));
         }
 
-        if (
-            Api.World.Side.IsServer()
-            && Api.World.ElapsedMilliseconds - lastParticleSpawnTime > 800
-        )
+        if (Api.World.ElapsedMilliseconds - lastParticleSpawnTime > 800)
         {
             lastParticleSpawnTime = Api.World.ElapsedMilliseconds;
 
-            UpdateUnreadCacheIfNeeded();
-
-            foreach (IServerPlayer player in Api.World.AllOnlinePlayers)
+            if (ShouldParticlesSpawn())
             {
-                if (player.ConnectionState != EnumClientState.Playing)
-                    continue;
+                UpdateUnreadCacheForPlayers(nearbyPlayers);
 
-                if (player.Entity.Pos.SquareDistanceTo(Pos.ToVec3d()) > 32 * 32)
-                    continue;
-
-                if (HasUnreadCached(player.PlayerUID) && ShouldParticlesSpawn())
+                foreach (var player in nearbyPlayers)
                 {
-                    ((NoticeBoardBlock)Block)?.SpawnUnreadParticles(Api.World, Pos);
-
-                    break;
+                    if (HasUnreadCached(player.PlayerUID))
+                    {
+                        NoticeBoardModSystem.getSAPI().Network.GetChannel("noticeboard")
+                            .SendPacket(new UnreadParticlesPacket { Pos = Pos }, player);
+                    }
                 }
             }
         }
+    }
+
+    private void UpdateUnreadCacheForPlayers(List<IServerPlayer> playersToCheck)
+    {
+        long now = Api.World.ElapsedMilliseconds;
+        if (now - lastUnreadCacheUpdate < 2000)
+            return;
+
+        unreadCache.Clear();
+
+        foreach (IServerPlayer player in playersToCheck)
+        {
+            unreadCache[player.PlayerUID] = db.HasUnreadMessages(player.PlayerUID, uniqueID);
+        }
+
+        lastUnreadCacheUpdate = now;
     }
 
     private void UpdateBoardPropertiesCache()
     {
         long now = Api.World.ElapsedMilliseconds;
 
-        if (now - lastBoardPropertiesCacheUpdate < 2000)
+        if (now - lastBoardPropertiesCacheUpdate < 60000)
             return;
 
         lastBoardPropertiesCacheUpdate = now;
 
         var freshData = db.GetBoardData(uniqueID);
 
-        if (freshData?.BoardName != BoardProperties?.BoardName
+        if (
+            freshData?.BoardName != BoardProperties?.BoardName
             || freshData?.PlayerName != BoardProperties?.PlayerName
             || freshData?.IsLocked != BoardProperties?.IsLocked
             || freshData?.BoardFont != BoardProperties?.BoardFont
             || freshData?.EnableParticles != BoardProperties?.EnableParticles
-            || freshData?.EnableParchment != BoardProperties?.EnableParchment)
+            || freshData?.EnableParchment != BoardProperties?.EnableParchment
+        )
         {
             BoardProperties = freshData;
             MarkDirty(true);
@@ -300,7 +322,7 @@ public class NoticeBoardBlockEntity : BlockEntityOpenableContainer
 
     public bool ShouldParticlesSpawn()
     {
-        return BoardProperties.EnableParticles == 1;
+        return BoardProperties?.EnableParticles == 1;
     }
 
     public bool HasUnreadMessagesForPlayer(string playerId)
@@ -318,12 +340,18 @@ public class NoticeBoardBlockEntity : BlockEntityOpenableContainer
         base.OnBlockRemoved();
     }
 
-    public override void FromTreeAttributes(ITreeAttribute tree, IWorldAccessor worldAccessForResolve)
+    public override void FromTreeAttributes(
+        ITreeAttribute tree,
+        IWorldAccessor worldAccessForResolve
+    )
     {
         if (inventory == null)
         {
             if (tree.HasAttribute("forBlockId"))
-                InitInventory(worldAccessForResolve.GetBlock((ushort)tree.GetInt("forBlockId")), Api);
+                InitInventory(
+                    worldAccessForResolve.GetBlock((ushort)tree.GetInt("forBlockId")),
+                    Api
+                );
         }
 
         base.FromTreeAttributes(tree, worldAccessForResolve);
@@ -348,5 +376,4 @@ public class NoticeBoardBlockEntity : BlockEntityOpenableContainer
         if (Block != null)
             tree.SetInt("forBlockId", Block.BlockId);
     }
-
 }

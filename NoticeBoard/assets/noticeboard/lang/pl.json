@@ -17,6 +17,7 @@
   "settings-board-name": "Nazwa tablicy:",
   "settings-board-owner": "Właściciel tablicy:",
   "settings-board-font": "Czcionka tablicy:",
+  "settings-board-font-size": "Rozmiar czcionki tablicy:",
   "settings-board-theme": "Motyw tablicy:",
   "settings-board-lock": "Zablokuj tablicę ogłoszeń:",
   "settings-board-parchment": "Włącz pergamin:",
@@ -24,7 +25,7 @@
   "settings-board-proximity": "Włącz proximity:",
   "settings-board-proximity-channel": "Nazwa kanału proximity:",
   "settings-board-proximity-distance": "Dystans proximity:",
-  "settings-board-save": "Zapisz wszystkie ustawienia:",
+  "settings-board-save": "Zapisz wszystkie ustawienia",
 
   "settings-board-not-owner": "(Tylko właściciel może to edytować)",
 
@@ -33,5 +34,5 @@
   "add-notice-window-preview": "Podgląd:",
   "add-notice-window-preview-switch": "Włącz podgląd",
 
-  "new-notice-proximity-message": "zostawił nowe ogłoszenie na tablicy "
+  "new-notice-proximity-message": "zostawił/a nowe ogłoszenie na tablicy"
 }

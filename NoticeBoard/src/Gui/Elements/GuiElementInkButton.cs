@@ -168,14 +168,11 @@ namespace NoticeBoard.src.Gui.Windows
             double w = Bounds.OuterWidth;
             double h = Bounds.OuterHeight;
 
-            // Adjusted divisor to account for the larger 16x16 grid while keeping a nice margin
             double pixelSize = Math.Min(w, h) / 24.0;
 
-            // Shifted from 12 to 16 for centering
             double startX = (w - (16 * pixelSize)) / 2.0;
             double startY = (h - (16 * pixelSize)) / 2.0;
 
-            // Updated loops to 16x16
             for (int row = 0; row < 16; row++)
             {
                 for (int col = 0; col < 16; col++)
@@ -209,7 +206,6 @@ namespace NoticeBoard.src.Gui.Windows
                 );
             }
         }
-
         public override void OnMouseMove(ICoreClientAPI api, MouseEvent args)
         {
             base.OnMouseMove(api, args);
@@ -221,7 +217,7 @@ namespace NoticeBoard.src.Gui.Windows
             base.OnMouseDownOnElement(api, args);
             if (Bounds.PointInside(args.X, args.Y) && args.Button == EnumMouseButton.Left)
             {
-                api.Gui.PlaySound("ticking");
+                //api.Gui.PlaySound("ticking");
                 onClick?.Invoke();
                 args.Handled = true;
             }

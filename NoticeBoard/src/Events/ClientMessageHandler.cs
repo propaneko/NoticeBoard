@@ -1,4 +1,5 @@
-﻿using NoticeBoard.Packets;
+﻿using NoticeBoard.BlockType;
+using NoticeBoard.Packets;
 using NoticeBoard.src.Gui.Windows;
 using Vintagestory.API.Client;
 using Vintagestory.API.Server;
@@ -17,6 +18,8 @@ namespace NoticeBoard.Events
                 .SetMessageHandler<ResponseAllMessages>(OnServerMessagesReceived);
             capi.Network.GetChannel("noticeboard")
                 .SetMessageHandler<ResponseAllPlayers>(OnPlayersReceived);
+            capi.Network.GetChannel("noticeboard")
+                .SetMessageHandler<UnreadParticlesPacket>(OnUnreadParticlesPacketReceived);
         }
 
         private void OnServerMessagesReceived(ResponseAllMessages packet)
@@ -34,6 +37,14 @@ namespace NoticeBoard.Events
         private void OnPlayersReceived(ResponseAllPlayers packet)
         {
             messageBoardGui.UpdatePlayersList(packet.Players);
+        }
+
+        private void OnUnreadParticlesPacketReceived(UnreadParticlesPacket packet)
+        {
+            if (capi.World.BlockAccessor.GetBlock(packet.Pos) is NoticeBoardBlock boardBlock)
+            {
+                boardBlock.SpawnUnreadParticles(capi.World, packet.Pos);
+            }
         }
     }
 }

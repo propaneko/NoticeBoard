@@ -1,16 +1,16 @@
-﻿using ProtoBuf;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using ProtoBuf;
 using Vintagestory.API.MathTools;
 
 namespace NoticeBoard.Packets
 {
-
     [ProtoContract]
     public class RequestAllMessages
     {
         [ProtoMember(1)]
         public string BoardId { get; set; }
+
         [ProtoMember(2)]
         public string PlayerId { get; set; }
     }
@@ -20,8 +20,10 @@ namespace NoticeBoard.Packets
     {
         [ProtoMember(1)]
         public string BoardId { get; set; }
+
         [ProtoMember(2)]
         public string PlayerId { get; set; }
+
         [ProtoMember(3)]
         public string Pos { get; set; }
     }
@@ -45,6 +47,7 @@ namespace NoticeBoard.Packets
     {
         [ProtoMember(1)]
         public int MessageId { get; set; }
+
         [ProtoMember(2)]
         public string BoardId { get; set; }
     }
@@ -54,6 +57,7 @@ namespace NoticeBoard.Packets
     {
         [ProtoMember(1)]
         public int MessageId { get; set; }
+
         [ProtoMember(2)]
         public string BoardId { get; set; }
     }
@@ -63,6 +67,7 @@ namespace NoticeBoard.Packets
     {
         [ProtoMember(1)]
         public int MessageId { get; set; }
+
         [ProtoMember(2)]
         public string BoardId { get; set; }
     }
@@ -72,12 +77,18 @@ namespace NoticeBoard.Packets
     {
         [ProtoMember(1)]
         public string Message { get; set; }
+
         [ProtoMember(2)]
         public string BoardId { get; set; }
+
         [ProtoMember(3)]
         public string PlayerId { get; set; }
+
         [ProtoMember(4)]
-        public BlockPos BoardPos;
+        public double TotalHours { get; set; }
+
+        [ProtoMember(5)]
+        public int IsAnonymous { get; set; }
     }
 
     [ProtoContract]
@@ -85,12 +96,15 @@ namespace NoticeBoard.Packets
     {
         [ProtoMember(1)]
         public string Document { get; set; }
+
         [ProtoMember(2)]
         public string BoardId { get; set; }
+
         [ProtoMember(3)]
         public string PlayerId { get; set; }
+
         [ProtoMember(4)]
-        public BlockPos BoardPos;
+        public double TotalHours { get; set; }
     }
 
     [ProtoContract]
@@ -98,10 +112,17 @@ namespace NoticeBoard.Packets
     {
         [ProtoMember(1)]
         public int Id { get; set; }
+
         [ProtoMember(2)]
         public string Message { get; set; }
+
         [ProtoMember(3)]
         public string BoardId { get; set; }
+
+        [ProtoMember(4)]
+        public double TotalHours { get; set; }
+        [ProtoMember(5)]
+        public int IsAnonymous { get; set; }
     }
 
     [ProtoContract]
@@ -214,19 +235,38 @@ namespace NoticeBoard.Packets
         public int Distance { get; set; }
     }
 
+    [ProtoContract]
+    public class EditBoardFontSize
+    {
+        [ProtoMember(1)]
+        public string BoardId { get; set; }
+
+        [ProtoMember(2)]
+        public float BoardFontSize { get; set; }
+    }
 
     [ProtoContract]
     public class Message
     {
         [ProtoMember(1)]
         public int Id { get; set; }
+
         [ProtoMember(2)]
         public string Text { get; set; }
+
         [ProtoMember(3)]
         public string PlayerId { get; set; }
+
         [ProtoMember(4)]
         public string PlayerName { get; set; }
+
         [ProtoMember(5)]
+        public double TotalHours { get; set; }
+
+        [ProtoMember(6)]
+        public int IsAnonymous { get; set; }
+
+        [ProtoMember(7)]
         public DateTime CreatedAt { get; set; }
     }
 
@@ -243,46 +283,44 @@ namespace NoticeBoard.Packets
         public string BoardFont { get; set; }
 
         [ProtoMember(4)]
-        public string BoardTheme { get; set; }
+        public float BoardFontSize { get; set; }
 
         [ProtoMember(5)]
-        public string PlayerId { get; set; }
+        public string BoardTheme { get; set; }
 
         [ProtoMember(6)]
-        public string PlayerName { get; set; }
+        public string PlayerId { get; set; }
 
         [ProtoMember(7)]
-        public string Pos { get; set; }
+        public string PlayerName { get; set; }
 
         [ProtoMember(8)]
-        public int IsLocked { get; set; }
+        public string Pos { get; set; }
 
         [ProtoMember(9)]
-        public int EnableParticles { get; set; }
+        public int IsLocked { get; set; }
 
         [ProtoMember(10)]
-        public int EnableParchment { get; set; }
+        public int EnableParticles { get; set; }
 
         [ProtoMember(11)]
-        public int EnableProximity { get; set; }
-        
+        public int EnableParchment { get; set; }
+
         [ProtoMember(12)]
-        public string ProximityChannel { get; set; }
+        public int EnableProximity { get; set; }
 
         [ProtoMember(13)]
+        public string ProximityChannel { get; set; }
+
+        [ProtoMember(14)]
         public int ProximityDistance { get; set; }
     }
 
+    [ProtoContract]
+    public class RefreshNoticeBoard { }
 
     [ProtoContract]
-    public class RefreshNoticeBoard
-    {
-    }
-
-    [ProtoContract]
-    public class RequestAllPlayers
-    {
-    }
+    public class RequestAllPlayers { }
 
     [ProtoContract]
     public class ResponseAllPlayers
@@ -296,7 +334,15 @@ namespace NoticeBoard.Packets
     {
         [ProtoMember(1)]
         public string PlayerUID { get; set; }
+
         [ProtoMember(2)]
         public string PlayerName { get; set; }
+    }
+
+    [ProtoContract]
+    public class UnreadParticlesPacket
+    {
+        [ProtoMember(1)]
+        public BlockPos Pos { get; set; }
     }
 }

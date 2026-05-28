@@ -1,4 +1,5 @@
 ﻿using NoticeBoard.BlockType;
+using NoticeBoard.Extensions;
 using NoticeBoard.Packets;
 using System;
 using System.Linq;
@@ -10,7 +11,7 @@ namespace NoticeBoard.src.Gui.Windows;
 
 public partial class NoticeBoardMainWindowGui
 {
-    private bool OpenTextInput(string mode, int messageId, string currentText)
+    private bool OpenTextInput(string mode, int messageId, string currentText, int isAnonymous = 0)
     {
         if (this.textInputGui != null && this.textInputGui.IsOpened())
             this.textInputGui.TryClose();
@@ -21,7 +22,8 @@ public partial class NoticeBoardMainWindowGui
             this.noticeBoardPacket,
             mode,
             messageId,
-            currentText
+            currentText,
+            isAnonymous
         );
         this.textInputGui.TryOpen();
         return true;
@@ -33,7 +35,7 @@ public partial class NoticeBoardMainWindowGui
             return OpenTextInput("add", -1, "");
 
         if (
-            capi.World.BlockAccessor.GetBlockEntity(this.boardPos)
+            capi.GetNoticeBoardEntity(this.boardPos)
             is not NoticeBoardBlockEntity blockEntity
         )
         {
@@ -45,7 +47,7 @@ public partial class NoticeBoardMainWindowGui
 
         foreach (ItemSlot slot in blockEntity.Inventory)
         {
-            if (!slot.Empty && slot.Itemstack.Collectible.Code.Path.StartsWith("paper-parchment"))
+            if (!slot.Empty && (slot.Itemstack.Collectible.Code.Path.StartsWith("paper-parchment") || slot.Itemstack.Collectible.Code.Path == "papyrus-paper"))
             {
                 validSlot = slot;
                 break; 
@@ -64,7 +66,7 @@ public partial class NoticeBoardMainWindowGui
     private bool OnPostDocumentClick()
     {
         NoticeBoardBlockEntity blockEntity =
-            capi.World.BlockAccessor.GetBlockEntity(this.boardPos) as NoticeBoardBlockEntity;
+            capi.GetNoticeBoardEntity(this.boardPos);
         ItemSlot writtenSlot = blockEntity.Inventory[4]; // The 5th slot
 
         if (writtenSlot.Empty)
@@ -81,7 +83,7 @@ public partial class NoticeBoardMainWindowGui
             return false;
         }
 
-        var networkChannel = NoticeBoardModSystem.getCAPI().Network.GetChannel("noticeboard");
+        var networkChannel = capi.Network.GetChannel("noticeboard");
         networkChannel.SendPacket(
             new PlayerSendDocument
             {
@@ -99,7 +101,7 @@ public partial class NoticeBoardMainWindowGui
     private bool EditMessage(int id)
     {
         Message message = this.messages.Find(m => m.Id == id);
-        return message != null && OpenTextInput("edit", message.Id, message.Text);
+        return message != null && OpenTextInput("edit", message.Id, message.Text, message.IsAnonymous);
     }
 
     private bool RemoveMessage(int id)
@@ -120,7 +122,7 @@ public partial class NoticeBoardMainWindowGui
 
     private bool BumpMessage(int id)
     {
-        capi.Network.GetChannel("noticeboard").SendPacket(new PlayerBumpMessage { MessageId = id });
+        capi.Network.GetChannel("noticeboard").SendPacket(new PlayerBumpMessage { MessageId = id, BoardId = this.boardId });
         this.GetMessages();
         return true;
     }
@@ -163,6 +165,36 @@ public partial class NoticeBoardMainWindowGui
         return Math.Ceiling(dummyBounds.fixedHeight) + 2.0;
     }
 
+    private string GetAbsoluteGameDate(double savedTotalHours)
+    {
+        var calendar = this.capi.World.Calendar;
+        string[] monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+
+        float hoursPerDay = calendar.HoursPerDay;
+        int daysPerMonth = calendar.DaysPerMonth;
+        int monthsPerYear = monthNames.Length; 
+        int daysPerYear = daysPerMonth * monthsPerYear;
+        int totalDays = (int)(savedTotalHours / hoursPerDay);
+
+        double hourOfDayRaw = savedTotalHours % hoursPerDay;
+        int hour = (int)hourOfDayRaw;
+        int minute = (int)((hourOfDayRaw - hour) * 60);
+
+        string amPm = hour >= 12 ? "PM" : "AM";
+        int displayHour = hour % 12;
+        if (displayHour == 0) displayHour = 12;
+
+        int year = (totalDays / daysPerYear);
+        int dayOfYear = totalDays % daysPerYear;
+        int monthIndex = dayOfYear / daysPerMonth;
+        int dayOfMonth = (dayOfYear % daysPerMonth) + 1;
+
+        string monthName = monthNames[Math.Clamp(monthIndex, 0, monthNames.Length - 1)];
+
+        return $"Day {dayOfMonth} of {monthName}, Year {year} at {displayHour}:{minute:D2} {amPm}";
+    }
+
     private void PopulateMessagesTab(GuiComposer composer, ElementBounds insetBounds)
     {
         double insetWidth = 720.0;
@@ -183,7 +215,7 @@ public partial class NoticeBoardMainWindowGui
             .WhiteDetailText()
             .WithColor(theme.InkColor)
             .WithFont(this.boardFont)
-            .WithFontSize(18f);
+            .WithFontSize(this.boardFontSize);
         CairoFont buttonFont = CairoFont.WhiteDetailText();
 
         Action<LinkTextComponent> onLinkClicked = (link) =>
@@ -205,23 +237,26 @@ public partial class NoticeBoardMainWindowGui
                 int id = message.Id;
                 string messageText = message.Text;
                 string authorName = message.PlayerName;
-                DateTime timeString = message.CreatedAt;
+                double totalHours = message.TotalHours;
+                int isAnonymous = message.IsAnonymous;
 
-                CairoFont nameFont = inkFont.Clone().WithFontSize(14f);
+                string immersiveDate = GetAbsoluteGameDate(totalHours);
+
+                CairoFont nameFont = inkFont.Clone().WithFontSize(16f);
                 CairoFont dateFont = inkFont
                     .Clone()
-                    .WithFontSize(12f)
+                    .WithFontSize(14f)
                     .WithOrientation(EnumTextOrientation.Right);
 
                 RichTextComponentBase[] nameVtml = VtmlUtil.Richtextify(
                     this.capi,
-                    $"{authorName}",
+                    $"{(isAnonymous == 0 ? authorName : "")}",
                     nameFont,
                     null
                 );
                 RichTextComponentBase[] dateVtml = VtmlUtil.Richtextify(
                     this.capi,
-                    $"<i>{timeString}</i>",
+                    $"<i>{immersiveDate}</i>",
                     dateFont,
                     null
                 );
@@ -246,7 +281,7 @@ public partial class NoticeBoardMainWindowGui
                 double actualTextWidth = totalPaperWidth - textPaddingLeft - textPaddingRight;
                 double headerHeight = 40.0;
                 double headerGap = 8.0;
-                double bottomOffset = 30.0;
+                double bottomOffset = 40.0;
                 double bodyHeight = this.CalculateRichtextHeight(bodyVtml, actualTextWidth);
                 double totalTextHeight = headerHeight + headerGap + bodyHeight + bottomOffset;
                 double rowPadding = 24.0;
@@ -258,7 +293,7 @@ public partial class NoticeBoardMainWindowGui
 
                 ElementBounds nameBounds = containerRowBounds
                     .FlatCopy()
-                    .WithFixedOffset(textPaddingLeft, 32.0)
+                    .WithFixedOffset(textPaddingLeft, 28.0)
                     .WithFixedWidth(actualTextWidth / 2.0)
                     .WithFixedHeight(headerHeight);
                 ElementBounds dateBounds = containerRowBounds

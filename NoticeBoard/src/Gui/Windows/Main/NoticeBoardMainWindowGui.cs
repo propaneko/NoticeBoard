@@ -1,9 +1,9 @@
-﻿using NoticeBoard.BlockType;
+﻿using System;
+using System.Collections.Generic;
+using NoticeBoard.BlockType;
 using NoticeBoard.Extensions;
 using NoticeBoard.Packets;
 using NoticeBoard.Utils;
-using System;
-using System.Collections.Generic;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
@@ -36,6 +36,8 @@ public partial class NoticeBoardMainWindowGui : GuiDialog
     private double proximityDistance;
     private string pendingOwnerUid;
     private int pendingDistance;
+    private float boardFontSize;
+    private float pendingFontSize;
     private bool isDirty = false;
 
     private int activeTab = 0;
@@ -54,6 +56,7 @@ public partial class NoticeBoardMainWindowGui : GuiDialog
         this.boardId = packet.BoardProperties.BoardId;
         this.boardName = packet.BoardProperties.BoardName;
         this.boardFont = packet.BoardProperties.BoardFont;
+        this.boardFontSize = packet.BoardProperties.BoardFontSize;
         this.boardTheme = packet.BoardProperties.BoardTheme;
         this.boardPlayerId = packet.BoardProperties.PlayerId;
         this.boardPlayerName = packet.BoardProperties.PlayerName;
@@ -201,11 +204,23 @@ public partial class NoticeBoardMainWindowGui : GuiDialog
         );
 
         ElementBounds tabBounds = ElementBounds.Fixed(0.0, -32, listWidth, 35.0);
-        GuiTab[] tabs =
-        [
-            new() { Name = Lang.Get("noticeboard:main-window-tab-messages"), DataInt = 0 },
-            isOwner ? new GuiTab() { Name = Lang.Get("noticeboard:main-window-tab-settings"), DataInt = 1 } : null,
-        ];
+        List<GuiTab> tabList = new List<GuiTab>
+        {
+            new GuiTab() { Name = Lang.Get("noticeboard:main-window-tab-messages"), DataInt = 0 },
+        };
+
+        if (isOwner)
+        {
+            tabList.Add(
+                new GuiTab()
+                {
+                    Name = Lang.Get("noticeboard:main-window-tab-settings"),
+                    DataInt = 1,
+                }
+            );
+        }
+
+        GuiTab[] tabs = tabList.ToArray();
 
         dialogComposer.AddHorizontalTabs(
             tabs,
@@ -289,7 +304,7 @@ public partial class NoticeBoardMainWindowGui : GuiDialog
                 20,
                 GuiStyle.TitleBarHeight + 20,
                 listWidth + 20,
-                insetHeight
+                insetHeight + 60
             );
             GuiElementInsetHelper.AddInset(dialogComposer, settingsInsetBounds, insetDepth, 0.85f);
             GuiComposerHelpers.AddContainer(dialogComposer, containerBounds, "settings-content");
@@ -306,8 +321,15 @@ public partial class NoticeBoardMainWindowGui : GuiDialog
             {
                 if (blockEntity.Inventory[4].Empty)
                 {
-                    capi.Gui.Icons.DrawIcon(cr, "circle", x + 4, y + 4, w - 8, h - 8,
-                        new double[] { 1, 1, 1, 0.2 });
+                    capi.Gui.Icons.DrawIcon(
+                        cr,
+                        "circle",
+                        x + 4,
+                        y + 4,
+                        w - 8,
+                        h - 8,
+                        new double[] { 1, 1, 1, 0.2 }
+                    );
                 }
             };
         }
@@ -322,7 +344,10 @@ public partial class NoticeBoardMainWindowGui : GuiDialog
                     (float)this.lastCalculatedContentHeight
                 );
 
-                float maxScroll = Math.Max(0, (float)this.lastCalculatedContentHeight - (float)insetBounds.fixedHeight);
+                float maxScroll = Math.Max(
+                    0,
+                    (float)this.lastCalculatedContentHeight - (float)insetBounds.fixedHeight
+                );
                 this.currentScrollY = Math.Min(this.currentScrollY, maxScroll);
 
                 scrollbar.CurrentYPosition = this.currentScrollY;

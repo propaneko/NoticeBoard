@@ -60,7 +60,8 @@ public class SQLiteDatabase
             CREATE TABLE IF NOT EXISTS noticeBoard (
                 boardId TEXT NOT NULL PRIMARY KEY,
                 boardName TEXT DEFAULT 'Notice Board',
-                boardFont TEXT DEFAULT 'alagard',
+                boardFont TEXT DEFAULT 'Ari-W9500',
+                boardFontSize REAL DEFAULT '16.0',
                 boardTheme TEXT DEFAULT 'Classic Aged',
 
                 ownerPlayerId TEXT NOT NULL,
@@ -80,6 +81,8 @@ public class SQLiteDatabase
                 boardId TEXT NOT NULL,
                 senderPlayerId TEXT NOT NULL,
                 message TEXT NOT NULL,
+                totalHours REAL NOT NULL,
+                isAnonymous INTEGER DEFAULT 0,
                 createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
 

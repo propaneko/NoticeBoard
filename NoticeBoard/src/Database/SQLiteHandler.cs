@@ -68,6 +68,64 @@ public class SQLiteHandler
         return players;
     }
 
+    public PlayerEntry GetPlayerBytId(string playerId)
+    {
+        SQLiteDatabase.TryOpenConnection();
+        var player = new PlayerEntry();
+
+        try
+        {
+            string query =
+                @"SELECT p.playerId, p.playerName FROM players p WHERE p.playerId = @playerId";
+
+            using var command = new SqliteCommand(query, SQLiteConnection);
+            command.Parameters.AddWithValue("@playerId", playerId);
+
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                player = new PlayerEntry { PlayerUID = reader.GetString(0) };
+            }
+        }
+        catch (Exception e)
+        {
+            NoticeBoardModSystem
+                .getSAPI()
+                .Logger.Error($"[NoticeBoard] Could not get messages: {e.Message}");
+        }
+
+        return player;
+    }
+
+    public PlayerEntry GetPlayerByName(string playerName)
+    {
+        SQLiteDatabase.TryOpenConnection();
+        var player = new PlayerEntry();
+
+        try
+        {
+            string query =
+                @"SELECT p.playerId, p.playerName FROM players p WHERE p.playerName = @playerName";
+
+            using var command = new SqliteCommand(query, SQLiteConnection);
+            command.Parameters.AddWithValue("@playerName", playerName);
+
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                player = new PlayerEntry { PlayerUID = reader.GetString(0) };
+            }
+        }
+        catch (Exception e)
+        {
+            NoticeBoardModSystem
+                .getSAPI()
+                .Logger.Error($"[NoticeBoard] Could not get messages: {e.Message}");
+        }
+
+        return player;
+    }
+
     #endregion
 
     #region NoticeBoard
@@ -235,7 +293,28 @@ public class SQLiteHandler
         {
             NoticeBoardModSystem
                 .getSAPI()
-                .Logger.Error($"[NoticeBoard] Could not update board name: {e.Message}");
+                .Logger.Error($"[NoticeBoard] Could not update board font: {e.Message}");
+        }
+    }
+
+    public void EditBoardFontSize(EditBoardFontSize packet)
+    {
+        SQLiteDatabase.TryOpenConnection();
+
+        try
+        {
+            string query =
+                "UPDATE noticeBoard SET boardFontSize = @boardFontSize WHERE boardId = @boardId";
+            using var command = new SqliteCommand(query, SQLiteConnection);
+            command.Parameters.AddWithValue("@boardId", packet.BoardId);
+            command.Parameters.AddWithValue("@boardFontSize", packet.BoardFontSize);
+            command.ExecuteNonQuery();
+        }
+        catch (Exception e)
+        {
+            NoticeBoardModSystem
+                .getSAPI()
+                .Logger.Error($"[NoticeBoard] Could not update board font size: {e.Message}");
         }
     }
 
@@ -356,7 +435,8 @@ public class SQLiteHandler
         {
             string query =
                 @"
-                SELECT nb.boardId, nb.boardName, nb.boardFont, nb.boardTheme, nb.ownerPlayerId, nb.pos, nb.isLocked, nb.enableParticles, nb.enableParchment, p.playerName,
+                SELECT nb.boardId, nb.boardName, nb.boardFont, nb.boardFontSize, nb.boardTheme, nb.ownerPlayerId, 
+                       nb.pos, nb.isLocked, nb.enableParticles, nb.enableParchment, p.playerName,
                        nb.enableProximity, nb.proximityChannel, nb.proximityDistance
                 FROM noticeBoard nb
                 LEFT JOIN players p ON p.playerId = nb.ownerPlayerId
@@ -371,18 +451,19 @@ public class SQLiteHandler
                 noticeBoard.BoardId = reader.GetString(0);
                 noticeBoard.BoardName = reader.GetString(1);
                 noticeBoard.BoardFont = reader.GetString(2);
-                noticeBoard.BoardTheme = reader.GetString(3);
-                noticeBoard.PlayerId = reader.GetString(4);
-                noticeBoard.Pos = reader.GetString(5);
-                noticeBoard.IsLocked = reader.GetInt16(6);
-                noticeBoard.EnableParticles = reader.GetInt16(7);
-                noticeBoard.EnableParchment = reader.GetInt16(8);
-                noticeBoard.PlayerName = reader.IsDBNull(9) ? "Unknown" : reader.GetString(9);
-                noticeBoard.EnableProximity = reader.IsDBNull(10) ? 0 : reader.GetInt16(10);
-                noticeBoard.ProximityChannel = reader.IsDBNull(11)
+                noticeBoard.BoardFontSize = reader.GetFloat(3);
+                noticeBoard.BoardTheme = reader.GetString(4);
+                noticeBoard.PlayerId = reader.GetString(5);
+                noticeBoard.Pos = reader.GetString(6);
+                noticeBoard.IsLocked = reader.GetInt16(7);
+                noticeBoard.EnableParticles = reader.GetInt16(8);
+                noticeBoard.EnableParchment = reader.GetInt16(9);
+                noticeBoard.PlayerName = reader.IsDBNull(10) ? "Unknown" : reader.GetString(10);
+                noticeBoard.EnableProximity = reader.IsDBNull(11) ? 0 : reader.GetInt16(11);
+                noticeBoard.ProximityChannel = reader.IsDBNull(12)
                     ? "Proximity"
-                    : reader.GetString(11);
-                noticeBoard.ProximityDistance = reader.IsDBNull(12) ? 100 : reader.GetInt16(12);
+                    : reader.GetString(12);
+                noticeBoard.ProximityDistance = reader.IsDBNull(13) ? 100 : reader.GetInt16(13);
             }
 
             return noticeBoard;
@@ -408,13 +489,16 @@ public class SQLiteHandler
 
             string query =
                 @"
-                INSERT INTO messages (boardId, senderPlayerId, message) 
-                VALUES (@boardId, @playerId, @message)";
+                INSERT INTO messages (boardId, senderPlayerId, message, totalHours, isAnonymous ) 
+                VALUES (@boardId, @playerId, @message, @totalHours, @isAnonymous)";
 
             using var command = new SqliteCommand(query, SQLiteConnection);
             command.Parameters.AddWithValue("@boardId", packet.BoardId);
             command.Parameters.AddWithValue("@playerId", packet.PlayerId);
             command.Parameters.AddWithValue("@message", packet.Message);
+            command.Parameters.AddWithValue("@totalHours", packet.TotalHours);
+            command.Parameters.AddWithValue("@isAnonymous", packet.IsAnonymous);
+
             command.ExecuteNonQuery();
         }
         catch (Exception e)
@@ -425,23 +509,22 @@ public class SQLiteHandler
         }
     }
 
-    public void InsertMessage(PlayerSendDocument packet, string playerName)
+    public void InsertMessage(PlayerSendDocument packet)
     {
         SQLiteDatabase.TryOpenConnection();
 
         try
         {
-            AddPlayerToDatabase(packet.PlayerId, playerName);
-
             string query =
                 @"
-                INSERT INTO messages (boardId, senderPlayerId, message) 
-                VALUES (@boardId, @playerId, @message)";
+                INSERT INTO messages (boardId, senderPlayerId, message, totalHours ) 
+                VALUES (@boardId, @playerId, @message, @totalHours)";
 
             using var command = new SqliteCommand(query, SQLiteConnection);
             command.Parameters.AddWithValue("@boardId", packet.BoardId);
             command.Parameters.AddWithValue("@playerId", packet.PlayerId);
             command.Parameters.AddWithValue("@message", packet.Document);
+            command.Parameters.AddWithValue("@totalHours", packet.TotalHours);
             command.ExecuteNonQuery();
         }
         catch (Exception e)
@@ -461,7 +544,7 @@ public class SQLiteHandler
         {
             string query =
                 @"
-                SELECT m.id, m.message, m.senderPlayerId, p.playerName, m.createdAt
+                SELECT m.id, m.message, m.senderPlayerId, m.totalHours, p.playerName, m.createdAt
                 FROM messages m
                 LEFT JOIN players p ON p.playerId = m.senderPlayerId
                 WHERE m.id = @messageId
@@ -476,8 +559,9 @@ public class SQLiteHandler
                 message.Id = reader.GetInt32(0);
                 message.Text = reader.GetString(1);
                 message.PlayerId = reader.GetString(2);
-                message.PlayerName = reader.IsDBNull(3) ? "Unknown" : reader.GetString(3);
-                message.CreatedAt = reader.GetDateTime(4);
+                message.TotalHours = reader.GetDouble(3);
+                message.PlayerName = reader.IsDBNull(4) ? "Unknown" : reader.GetString(4);
+                message.CreatedAt = reader.GetDateTime(5);
             }
             return message;
         }
@@ -499,7 +583,7 @@ public class SQLiteHandler
         {
             string query =
                 @"
-                SELECT m.id, m.message, m.senderPlayerId, p.playerName, m.createdAt
+                SELECT m.id, m.message, m.senderPlayerId, m.totalHours, p.playerName, m.createdAt, m.isAnonymous
                 FROM messages m
                 LEFT JOIN players p ON p.playerId = m.senderPlayerId
                 WHERE m.boardId = @boardId
@@ -517,8 +601,10 @@ public class SQLiteHandler
                         Id = reader.GetInt32(0),
                         Text = reader.GetString(1),
                         PlayerId = reader.GetString(2),
-                        PlayerName = reader.IsDBNull(3) ? "Unknown" : reader.GetString(3),
-                        CreatedAt = reader.GetDateTime(4),
+                        TotalHours = reader.GetDouble(3),
+                        PlayerName = reader.IsDBNull(4) ? "Unknown" : reader.GetString(4),
+                        CreatedAt = reader.GetDateTime(5),
+                        IsAnonymous = reader.GetInt32(6),
                     }
                 );
             }
@@ -569,17 +655,19 @@ public class SQLiteHandler
         }
     }
 
-    public void EditMessageById(int id, string message)
+    public void EditMessageById(int id, string message, int isAnonymous)
     {
         SQLiteDatabase.TryOpenConnection();
 
         try
         {
             string query =
-                "UPDATE messages SET message = @message, updatedAt = CURRENT_TIMESTAMP WHERE id = @id";
+                "UPDATE messages SET message = @message, updatedAt = CURRENT_TIMESTAMP, isAnonymous = @isAnonymous WHERE id = @id";
             using var command = new SqliteCommand(query, SQLiteConnection);
             command.Parameters.AddWithValue("@id", id);
             command.Parameters.AddWithValue("@message", message);
+            command.Parameters.AddWithValue("@isAnonymous", isAnonymous);
+
             command.ExecuteNonQuery();
         }
         catch (Exception e)
@@ -619,14 +707,14 @@ public class SQLiteHandler
         {
             string query =
                 @"
-                INSERT INTO playerBoardReads (playerId, boardId, lastReadMessageId, lastReadAt)
-                VALUES (@playerId, @boardId, 
-                        (SELECT MAX(id) FROM messages WHERE boardId = @boardId),
-                        CURRENT_TIMESTAMP)
-                ON CONFLICT(playerId, boardId) 
-                DO UPDATE SET 
-                    lastReadMessageId = (SELECT MAX(id) FROM messages WHERE boardId = @boardId),
-                    lastReadAt = CURRENT_TIMESTAMP;";
+            INSERT INTO playerBoardReads (playerId, boardId, lastReadMessageId, lastReadAt)
+            VALUES (@playerId, @boardId, 
+                    COALESCE((SELECT MAX(id) FROM messages WHERE boardId = @boardId), 0),
+                    CURRENT_TIMESTAMP)
+            ON CONFLICT(playerId, boardId) 
+            DO UPDATE SET 
+                lastReadMessageId = COALESCE((SELECT MAX(id) FROM messages WHERE boardId = @boardId), 0),
+                lastReadAt = CURRENT_TIMESTAMP;";
 
             using var command = new SqliteCommand(query, SQLiteConnection);
             command.Parameters.AddWithValue("@playerId", playerId);
@@ -649,21 +737,24 @@ public class SQLiteHandler
         {
             string query =
                 @"
-                SELECT MAX(m.id) > COALESCE(pbr.lastReadMessageId, 0)
-                FROM noticeBoard nb
-                LEFT JOIN messages m ON m.boardId = nb.boardId
-                LEFT JOIN playerBoardReads pbr ON pbr.boardId = nb.boardId AND pbr.playerId = @playerId
-                WHERE nb.boardId = @boardId;";
+            SELECT 
+                COALESCE((SELECT MAX(id) FROM messages WHERE boardId = @boardId), 0)
+                > 
+                COALESCE((SELECT lastReadMessageId FROM playerBoardReads WHERE boardId = @boardId AND playerId = @playerId), 0);";
 
             using var command = new SqliteCommand(query, SQLiteConnection);
             command.Parameters.AddWithValue("@playerId", playerId);
             command.Parameters.AddWithValue("@boardId", boardId);
 
             var result = command.ExecuteScalar();
-            return result != null && Convert.ToBoolean(result);
+
+            return result != null && Convert.ToInt64(result) > 0;
         }
-        catch
+        catch (Exception e)
         {
+            NoticeBoardModSystem
+                .getSAPI()
+                .Logger.Error($"[NoticeBoard] HasUnreadMessages error: {e.Message}");
             return false;
         }
     }

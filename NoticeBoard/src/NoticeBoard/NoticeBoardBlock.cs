@@ -172,15 +172,13 @@ public class NoticeBoardBlock : Block
     }
 
     public override bool OnBlockInteractStart(
-        IWorldAccessor world,
-        IPlayer byPlayer,
-        BlockSelection blockSel
-    )
+       IWorldAccessor world,
+       IPlayer byPlayer,
+       BlockSelection blockSel
+   )
     {
         if (byPlayer.InventoryManager.ActiveHotbarSlot?.Itemstack?.Block is NoticeBoardBlock)
-        {
             return base.OnBlockInteractStart(world, byPlayer, blockSel);
-        }
 
         if (
             world.BlockAccessor.GetBlockEntity(blockSel.Position)
@@ -195,7 +193,6 @@ public class NoticeBoardBlock : Block
                 RequestAllMessages requestPacket = new RequestAllMessages
                 {
                     BoardId = blockEntity.uniqueID,
-
                     PlayerId = byPlayer.PlayerUID,
                 };
 
@@ -205,8 +202,9 @@ public class NoticeBoardBlock : Block
                     .SendPacket(requestPacket);
 
                 blockEntity.OnPlayerRightClick(byPlayer, blockSel);
-                return true;
             }
+
+            return true;
         }
 
         return base.OnBlockInteractStart(world, byPlayer, blockSel);
@@ -261,6 +259,9 @@ public class NoticeBoardBlock : Block
             var sb = new StringBuilder();
 
             if (!string.IsNullOrEmpty(props.PlayerName))
+                sb.AppendLine($"Name: {props.BoardName}");
+
+            if (!string.IsNullOrEmpty(props.PlayerName))
                 sb.AppendLine($"Owner: {props.PlayerName}");
 
             if (props.IsLocked == 1)
@@ -311,7 +312,7 @@ public class NoticeBoardBlock : Block
 
     public void SpawnUnreadParticles(IWorldAccessor world, BlockPos pos)
     {
-        if (world.Side != EnumAppSide.Server)
+        if (world.Side != EnumAppSide.Client)
             return;
 
         Block block = world.BlockAccessor.GetBlock(pos);

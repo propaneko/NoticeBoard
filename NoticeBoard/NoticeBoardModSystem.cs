@@ -1,14 +1,15 @@
-﻿using HarmonyLib;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
+using HarmonyLib;
 using Microsoft.Data.Sqlite;
 using NoticeBoard.BlockType;
 using NoticeBoard.Configs;
 using NoticeBoard.Database;
 using NoticeBoard.Events;
 using NoticeBoard.Packets;
-using System;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Server;
@@ -20,8 +21,21 @@ namespace NoticeBoard
         [DllImport("gdi32.dll", EntryPoint = "AddFontResourceEx", CharSet = CharSet.Unicode)]
         private static extern int AddFontResourceEx(string lpszFilename, uint fl, IntPtr pdv);
 
-        [DllImport("libfontconfig.so.1", EntryPoint = "FcConfigAppFontAddFile")]
-        private static extern bool FcConfigAppFontAddFile(IntPtr config, string file);
+        [DllImport(
+            "libfontconfig.so.1",
+            EntryPoint = "FcConfigAppFontAddFile",
+            CharSet = CharSet.Ansi
+        )]
+        private static extern bool FcConfigAppFontAddFile(
+            IntPtr config,
+            [MarshalAs(UnmanagedType.LPUTF8Str)] string file
+        );
+
+        [DllImport("libfontconfig.so.1", EntryPoint = "FcConfigGetCurrent")]
+        private static extern IntPtr FcConfigGetCurrent();
+
+        [DllImport("libfontconfig.so.1", EntryPoint = "FcConfigBuildFonts")]
+        private static extern bool FcConfigBuildFonts(IntPtr config);
 
         [DllImport("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")]
         private static extern IntPtr CGDataProviderCreateWithFilename(string filename);
@@ -137,6 +151,7 @@ namespace NoticeBoard
                 .RegisterMessageType<EditEnableParchment>()
                 .RegisterMessageType<EditBoardName>()
                 .RegisterMessageType<EditBoardFont>()
+                .RegisterMessageType<EditBoardFontSize>()
                 .RegisterMessageType<EditBoardTheme>()
                 .RegisterMessageType<EditBoardOwner>()
                 .RegisterMessageType<EditEnableProximity>()
@@ -144,7 +159,31 @@ namespace NoticeBoard
                 .RegisterMessageType<EditProximityDistance>()
                 .RegisterMessageType<RequestAllPlayers>()
                 .RegisterMessageType<ResponseAllPlayers>()
-                .RegisterMessageType<PlayerRemoveMessage>();
+                .RegisterMessageType<PlayerRemoveMessage>()
+                .RegisterMessageType<UnreadParticlesPacket>();
+        }
+
+        public static List<string> ParseFontNames(string[] inputs)
+        {
+            var result = new List<string>();
+
+            foreach (var input in inputs)
+            {
+                string dir = Path.GetDirectoryName(input) ?? "";
+                string ext = Path.GetExtension(input);
+                string withoutExt = Path.GetFileNameWithoutExtension(input);
+
+                int dashIndex = withoutExt.LastIndexOf(" - ");
+                string name = dashIndex >= 0 ? withoutExt[..dashIndex] : withoutExt;
+
+                string fullPath = string.IsNullOrEmpty(dir)
+                    ? name + ext
+                    : Path.Combine(dir, name + ext);
+
+                result.Add(fullPath);
+            }
+
+            return result;
         }
 
         public override void StartClientSide(ICoreClientAPI api)
@@ -154,8 +193,10 @@ namespace NoticeBoard
             new ClientMessageHandler().SetMessageHandlers();
 
             string fontsDir = Path.Combine(
-                api.ModLoader.GetMod("noticeboard").SourcePath,
-                "assets/noticeboard/fonts"
+                capi.ModLoader.GetMod("noticeboard").SourcePath,
+                "assets",
+                "noticeboard",
+                "fonts"
             );
 
             if (!Directory.Exists(fontsDir))
@@ -164,9 +205,11 @@ namespace NoticeBoard
                 return;
             }
 
-            string[] fontFiles = Directory.GetFiles(fontsDir, "*.ttf")
-                .Concat(Directory.GetFiles(fontsDir, "*.otf"))
-                .ToArray();
+            string[] fontFiles =
+            [
+                .. Directory.GetFiles(fontsDir, "*.ttf"),
+                .. Directory.GetFiles(fontsDir, "*.otf"),
+            ];
 
             if (fontFiles.Length == 0)
             {
@@ -199,18 +242,36 @@ namespace NoticeBoard
             {
                 try
                 {
-                    if (FcConfigAppFontAddFile(IntPtr.Zero, fontPath))
+                    IntPtr currentConfig = FcConfigGetCurrent();
+
+                    if (currentConfig == IntPtr.Zero)
                     {
-                        api.Logger.Notification($"[NoticeBoard] Loaded font '{fontName}' on Linux.");
+                        api.Logger.Warning(
+                            $"[NoticeBoard] Could not retrieve current fontconfig configuration for '{fontName}'."
+                        );
+                        return;
+                    }
+
+                    if (FcConfigAppFontAddFile(currentConfig, fontPath))
+                    {
+                        FcConfigBuildFonts(currentConfig);
+
+                        api.Logger.Notification(
+                            $"[NoticeBoard] Loaded font '{fontName}' on Linux."
+                        );
                     }
                     else
                     {
-                        api.Logger.Warning($"[NoticeBoard] Linux rejected font '{fontName}'.");
+                        api.Logger.Warning(
+                            $"[NoticeBoard] Linux fontconfig rejected font '{fontName}'."
+                        );
                     }
                 }
                 catch (Exception ex)
                 {
-                    api.Logger.Error($"[NoticeBoard] Linux font loading failed for '{fontName}': " + ex.Message);
+                    api.Logger.Error(
+                        $"[NoticeBoard] Linux font loading failed for '{fontName}': " + ex.Message
+                    );
                 }
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
@@ -223,12 +284,19 @@ namespace NoticeBoard
                         IntPtr cgFont = CGFontCreateWithDataProvider(provider);
                         if (cgFont != IntPtr.Zero)
                         {
-                            bool success = CTFontManagerRegisterGraphicsFont(cgFont, out IntPtr error);
+                            bool success = CTFontManagerRegisterGraphicsFont(
+                                cgFont,
+                                out IntPtr error
+                            );
 
                             if (success)
-                                api.Logger.Notification($"[NoticeBoard] Loaded font '{fontName}' on macOS.");
+                                api.Logger.Notification(
+                                    $"[NoticeBoard] Loaded font '{fontName}' on macOS."
+                                );
                             else
-                                api.Logger.Warning($"[NoticeBoard] macOS CoreText rejected font '{fontName}'.");
+                                api.Logger.Warning(
+                                    $"[NoticeBoard] macOS CoreText rejected font '{fontName}'."
+                                );
 
                             CFRelease(cgFont);
                         }
@@ -237,7 +305,9 @@ namespace NoticeBoard
                 }
                 catch (Exception ex)
                 {
-                    api.Logger.Error($"[NoticeBoard] macOS font loading failed for '{fontName}': " + ex.Message);
+                    api.Logger.Error(
+                        $"[NoticeBoard] macOS font loading failed for '{fontName}': " + ex.Message
+                    );
                 }
             }
         }

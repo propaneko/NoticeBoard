@@ -97,7 +97,7 @@ public class ProceduralPaperGuiElement : GuiElementTextBase
                             break;
                     }
 
-                    double opacity = (0.05 + (rand.NextDouble() * 0.25)) * (distanceFactor * distanceFactor);
+                    double opacity = (0.05 + (rand.NextDouble() * 0.25)) * (0 * (double)0);
 
                     if (opacity > 0.01) 
                     {
