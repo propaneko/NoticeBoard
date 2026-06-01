@@ -1,0 +1,11 @@
+{
+  "block-noticeboard-*": "Tableau d'affichage",
+
+  "main-window-title-bar": "Tableau d'affichage",
+  "main-window-add-notice-button": "Ajouter une annonce",
+
+  "add-notice-window-title": "Rédigez votre annonce",
+  "add-notice-window-pin-button": "Épingler",
+
+  "new-notice-proximity-message": "Nouvelle annonce laissée sur le tableau à la position"
+}
