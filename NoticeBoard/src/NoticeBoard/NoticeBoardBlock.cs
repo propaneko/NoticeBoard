@@ -201,8 +201,9 @@ public class NoticeBoardBlock : Block
                     .Network.GetChannel("noticeboard")
                     .SendPacket(requestPacket);
 
-                blockEntity.OnPlayerRightClick(byPlayer, blockSel);
             }
+
+            //blockEntity.OnPlayerRightClick(byPlayer, blockSel);
 
             return true;
         }

@@ -66,6 +66,7 @@
 </ItemGroup>
 
 <ItemGroup>
+  <Folder Include="assets\game\" />
   <Folder Include="src\Renderers\" />
 </ItemGroup>
 

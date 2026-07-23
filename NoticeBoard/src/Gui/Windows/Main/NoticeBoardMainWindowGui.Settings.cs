@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using HarmonyLib;
@@ -12,22 +13,8 @@ public partial class NoticeBoardMainWindowGui
 {
     private void PopulateSettingsTab(GuiComposer composer, ElementBounds insetBounds)
     {
-        string fontsDir = Path.Combine(
-            capi.ModLoader.GetMod("noticeboard").SourcePath,
-            "assets",
-            "noticeboard",
-            "fonts"
-        );
-
-        string[] fontPaths = Directory.Exists(fontsDir)
-            ? [.. Directory.GetFiles(fontsDir, "*.ttf")]
-            : [];
-
-        string[] fontValues = NoticeBoardModSystem.ParseFontNames([.. fontPaths.Select(Path.GetFileNameWithoutExtension)]).ToArray();
-        string[] fontFileNames = [.. fontPaths.Select(Path.GetFileNameWithoutExtension)];
-
-        fontValues = fontValues.Prepend("Default").ToArray();
-        fontFileNames = fontFileNames.Prepend("Default").ToArray();
+        string[] fontValues = FontManager.FontDisplayNames;
+        string[] fontFileNames = FontManager.FontFileNames;
 
         int checkboxWidth = 50;
         int inputWidth = 200;
@@ -401,7 +388,11 @@ public partial class NoticeBoardMainWindowGui
         if (this.pendingFontSize != p.BoardFontSize)
         {
             channel.SendPacket(
-                new EditBoardFontSize { BoardId = this.boardId, BoardFontSize = this.pendingFontSize }
+                new EditBoardFontSize
+                {
+                    BoardId = this.boardId,
+                    BoardFontSize = this.pendingFontSize,
+                }
             );
             p.BoardFontSize = this.pendingFontSize;
         }
