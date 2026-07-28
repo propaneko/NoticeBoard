@@ -40,6 +40,22 @@ namespace NoticeBoard
 
         public static void InitializeFonts(ICoreClientAPI api)
         {
+            try
+            {
+                InitializeFontsInternal(api);
+            }
+            catch (DllNotFoundException ex)
+            {
+                api.Logger.Error("[NoticeBoard] Font loading library not found: " + ex.Message);
+            }
+            catch (Exception ex)
+            {
+                api.Logger.Error("[NoticeBoard] Font initialization failed: " + ex.Message);
+            }
+        }
+
+        private static void InitializeFontsInternal(ICoreClientAPI api)
+        {
             string sourcePath = api.ModLoader.GetMod("noticeboard").SourcePath;
             string fontsDir = "";
 

@@ -21,15 +21,15 @@ namespace NoticeBoard.Extensions
                 );
         }
 
-        public static IServerPlayer GetPlayerByUID(this ICoreServerAPI api, string name)
+        public static IServerPlayer GetPlayerByUID(this ICoreServerAPI api, string playerUID)
         {
             return api
                 .Server.Players.ToList()
                 .Find(findPlayer =>
                     String.Equals(
                         findPlayer.PlayerUID,
-                        name,
-                        StringComparison.InvariantCultureIgnoreCase
+                        playerUID,
+                        StringComparison.Ordinal
                     )
                 );
         }

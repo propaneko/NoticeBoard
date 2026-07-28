@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using NoticeBoard.BlockType;
+using NoticeBoard.Configs;
 using NoticeBoard.Database;
 using NoticeBoard.Extensions;
 using NoticeBoard.Packets;
@@ -28,7 +29,7 @@ namespace NoticeBoard.Events
             channel.SetMessageHandler<PlayerRemoveMessage>(OnPlayerRemoveMessage);
             channel.SetMessageHandler<PlayerDestroyNoticeBoard>(OnPlayerDestroyNoticeBoard);
             channel.SetMessageHandler<PlayerCreateNoticeBoard>(OnPlayerCreateNoticeBoard);
-            channel.SetMessageHandler<EditIsLocked>(OnPlayerEditIsLocked);
+            channel.SetMessageHandler<EditPermissionMode>(OnPlayerEditPermissionMode);
             channel.SetMessageHandler<EditEnableParticles>(OnPlayerEditEnableParticles);
             channel.SetMessageHandler<EditEnableParchment>(OnPlayerEditEnableParchment);
             channel.SetMessageHandler<RequestAllPlayers>(OnRequestAllPlayers);
@@ -47,6 +48,9 @@ namespace NoticeBoard.Events
             PlayerDestroyNoticeBoard packet
         )
         {
+            if (!CanManageBoard(player, packet.BoardId))
+                return;
+
             db.DeleteNoticeBoard(packet.BoardId);
         }
 
@@ -68,6 +72,13 @@ namespace NoticeBoard.Events
         {
             Message messageData = db.GetMessageById(packet.MessageId);
             NoticeBoardObject noticeBoard = db.GetBoardData(packet.BoardId);
+
+            if (noticeBoard == null)
+                return;
+
+            if (!CanEditMessage(player, noticeBoard, messageData))
+                return;
+
             BlockPos boardPos = PositionHelper.FromString(noticeBoard.Pos);
 
             if (messageData != null && noticeBoard.EnableParchment != 0)
@@ -118,6 +129,15 @@ namespace NoticeBoard.Events
         private void OnPlayerEditMessage(IServerPlayer player, PlayerEditMessage packet)
         {
             NoticeBoardObject noticeBoard = db.GetBoardData(packet.BoardId);
+
+            if (noticeBoard == null)
+                return;
+
+            Message messageData = db.GetMessageById(packet.Id);
+
+            if (!CanEditMessage(player, noticeBoard, messageData))
+                return;
+
             BlockPos boardPos = PositionHelper.FromString(noticeBoard.Pos);
 
             sapi.World.PlaySoundAt(
@@ -130,13 +150,22 @@ namespace NoticeBoard.Events
                 32.0f,
                 0.9f + (float)sapi.World.Rand.NextDouble() * 0.2f
             );
-          
+
             db.EditMessageById(packet.Id, packet.Message, packet.IsAnonymous);
         }
 
         private void OnPlayerBumpMessage(IServerPlayer player, PlayerBumpMessage packet)
         {
             NoticeBoardObject noticeBoard = db.GetBoardData(packet.BoardId);
+
+            if (noticeBoard == null)
+                return;
+
+            Message messageData = db.GetMessageById(packet.MessageId);
+
+            if (!CanEditMessage(player, noticeBoard, messageData))
+                return;
+
             BlockPos boardPos = PositionHelper.FromString(noticeBoard.Pos);
 
             db.BumpMessageById(packet.MessageId);
@@ -153,9 +182,12 @@ namespace NoticeBoard.Events
            );
         }
 
-        private void OnPlayerEditIsLocked(IServerPlayer player, EditIsLocked packet)
+        private void OnPlayerEditPermissionMode(IServerPlayer player, EditPermissionMode packet)
         {
-            db.EditIsLocked(packet);
+            if (!CanManageBoard(player, packet.BoardId))
+                return;
+
+            db.EditPermissionMode(packet);
         }
 
         private void OnPlayerEditEnableParticles(IServerPlayer player, EditEnableParticles packet)
@@ -214,6 +246,13 @@ namespace NoticeBoard.Events
         private void OnPlayerSendMessage(IServerPlayer player, PlayerSendMessage packet)
         {
             NoticeBoardObject noticeBoard = db.GetBoardData(packet.BoardId);
+
+            if (noticeBoard == null)
+                return;
+
+            if (noticeBoard.PermissionMode == (int)BoardPermissionMode.Locked && !CanManageBoard(player, noticeBoard.BoardId))
+                return;
+
             BlockPos boardPos = PositionHelper.FromString(noticeBoard.Pos);
             packet.TotalHours = sapi.World.Calendar.TotalHours;
 
@@ -293,6 +332,13 @@ namespace NoticeBoard.Events
         private void OnPlayerSendDocument(IServerPlayer player, PlayerSendDocument packet)
         {
             NoticeBoardObject noticeBoard = db.GetBoardData(packet.BoardId);
+
+            if (noticeBoard == null)
+                return;
+
+            if (noticeBoard.PermissionMode == (int)BoardPermissionMode.Locked && !CanManageBoard(player, noticeBoard.BoardId))
+                return;
+
             BlockPos boardPos = PositionHelper.FromString(noticeBoard.Pos);
             packet.TotalHours = sapi.World.Calendar.TotalHours;
 
@@ -390,7 +436,7 @@ namespace NoticeBoard.Events
             ResponseAllMessages responsePacket = new ResponseAllMessages
             {
                 Messages = messages,
-                BoardProperties = tableProperties,
+                BoardProperties = tableProperties ?? new NoticeBoardObject { BoardId = packet.BoardId },
             };
 
             sapi.Network.GetChannel("noticeboard").SendPacket(responsePacket, player);
@@ -402,6 +448,30 @@ namespace NoticeBoard.Events
 
             sapi.Network.GetChannel("noticeboard")
                 .SendPacket(new ResponseAllPlayers { Players = players }, player);
+        }
+
+        private bool CanManageBoard(IServerPlayer player, string boardId)
+        {
+            NoticeBoardObject noticeBoard = db.GetBoardData(boardId);
+            return noticeBoard != null
+                && (noticeBoard.PlayerId == player.PlayerUID || player.Role.Code == "admin");
+        }
+
+        private bool CanEditMessage(IServerPlayer player, NoticeBoardObject noticeBoard, Message message)
+        {
+            if (noticeBoard == null)
+                return false;
+
+            if (noticeBoard.PlayerId == player.PlayerUID || player.Role.Code == "admin")
+                return true;
+
+            if (noticeBoard.PermissionMode == (int)BoardPermissionMode.Locked)
+                return false;
+
+            if (noticeBoard.PermissionMode == (int)BoardPermissionMode.All)
+                return true;
+
+            return message != null && message.PlayerId == player.PlayerUID;
         }
     }
 }

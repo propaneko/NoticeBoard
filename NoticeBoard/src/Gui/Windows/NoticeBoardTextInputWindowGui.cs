@@ -51,7 +51,8 @@ namespace NoticeBoard.src.Gui.Windows
                 this.isAnonymous = isAnonymous;
             }
 
-            textHistory.Add(this.message ?? "");
+            this.message = this.message ?? "";
+            textHistory.Add(this.message);
             historyIndex = 0;
         }
 

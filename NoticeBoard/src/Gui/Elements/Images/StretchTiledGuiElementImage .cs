@@ -19,6 +19,12 @@ public class StretchTiledGuiElementImage : GuiElementTextBase
 
         ImageSurface imageSurfaceFromAsset = GuiElement.getImageSurfaceFromAsset(api, imageAsset);
 
+        if (imageSurfaceFromAsset == null)
+        {
+            context.Restore();
+            return;
+        }
+
         double scaleX = Bounds.OuterWidth / imageSurfaceFromAsset.Width;
 
         context.Translate((int)Bounds.drawX, (int)Bounds.drawY);

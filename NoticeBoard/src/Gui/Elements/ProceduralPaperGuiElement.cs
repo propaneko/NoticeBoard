@@ -61,12 +61,27 @@ public class ProceduralPaperGuiElement : GuiElementTextBase
                 double burntG = Math.Max(0.0, palette.DarkRGB[1] - 0.05);
                 double burntB = Math.Max(0.0, palette.DarkRGB[2] - 0.15);
 
-                int edgeSize = 24; 
-                int edgeSpecksCount = (int)(6.0 * (w + h)); 
+                int edgeSize = 24;
+                int edgeSpecksCount = (int)(6.0 * (w + h));
+
+                // Weight zones by perimeter length so left/right strips are not overpainted.
+                double topBotWeight = Math.Max(1, w);
+                double leftRightWeight = Math.Max(1, h);
+                double totalWeight = 2.0 * topBotWeight + 2.0 * leftRightWeight;
 
                 for (int i = 0; i < edgeSpecksCount; i++)
                 {
-                    int zone = rand.Next(4);
+                    double pick = rand.NextDouble() * totalWeight;
+                    int zone;
+                    if (pick < topBotWeight)
+                        zone = 0; // Top
+                    else if (pick < 2.0 * topBotWeight)
+                        zone = 1; // Bottom
+                    else if (pick < 2.0 * topBotWeight + leftRightWeight)
+                        zone = 2; // Left
+                    else
+                        zone = 3; // Right
+
                     int nx = 0, ny = 0;
                     double distanceFactor = 0;
 
@@ -97,14 +112,18 @@ public class ProceduralPaperGuiElement : GuiElementTextBase
                             break;
                     }
 
-                    double opacity = (0.05 + (rand.NextDouble() * 0.25)) * (0 * (double)0);
+                    double opacity = (0.04 + rand.NextDouble() * 0.18) * distanceFactor;
+                    if (opacity <= 0.01)
+                        continue;
 
-                    if (opacity > 0.01) 
-                    {
-                        ctx.SetSourceRGBA(burntR, burntG, burntB, opacity);
-                        ctx.Rectangle(nx, ny, speckSize, speckSize);
-                        ctx.Fill();
-                    }
+                    double t = distanceFactor;
+                    double r = burntR * t + palette.BaseRGB[0] * (1.0 - t);
+                    double g = burntG * t + palette.BaseRGB[1] * (1.0 - t);
+                    double b = burntB * t + palette.BaseRGB[2] * (1.0 - t);
+
+                    ctx.SetSourceRGBA(r, g, b, opacity);
+                    ctx.Rectangle(nx, ny, speckSize, speckSize);
+                    ctx.Fill();
                 }
 
                 double offTop = rand.NextDouble() * 1000.0;

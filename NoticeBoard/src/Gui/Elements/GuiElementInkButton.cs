@@ -168,7 +168,7 @@ namespace NoticeBoard.src.Gui.Windows
             double w = Bounds.OuterWidth;
             double h = Bounds.OuterHeight;
 
-            double pixelSize = Math.Min(w, h) / 24.0;
+            double pixelSize = Math.Min(w, h) / 16.0;
 
             double startX = (w - (16 * pixelSize)) / 2.0;
             double startY = (h - (16 * pixelSize)) / 2.0;

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using NoticeBoard.BlockType;
+using NoticeBoard.Configs;
 using NoticeBoard.Extensions;
 using NoticeBoard.Packets;
 using NoticeBoard.Utils;
@@ -28,7 +29,7 @@ public partial class NoticeBoardMainWindowGui : GuiDialog
     private string boardFont;
     private string boardTheme;
 
-    private bool isLocked;
+    private int permissionMode;
     private bool enableParticles;
     private bool enableParchment;
     private bool enableProximityMessage;
@@ -61,7 +62,7 @@ public partial class NoticeBoardMainWindowGui : GuiDialog
         this.boardPlayerId = packet.BoardProperties.PlayerId;
         this.boardPlayerName = packet.BoardProperties.PlayerName;
         this.boardPos = PositionHelper.FromString(packet.BoardProperties.Pos);
-        this.isLocked = packet.BoardProperties.IsLocked != 0;
+        this.permissionMode = packet.BoardProperties.PermissionMode;
         this.enableParticles = packet.BoardProperties.EnableParticles != 0;
         this.enableParchment = packet.BoardProperties.EnableParchment != 0;
         this.enableProximityMessage = packet.BoardProperties.EnableProximity != 0;
@@ -91,6 +92,9 @@ public partial class NoticeBoardMainWindowGui : GuiDialog
     {
         base.OnGuiClosed();
 
+        if (this.boardPos == null)
+            return;
+
         if (
             capi.World.BlockAccessor.GetBlockEntity(this.boardPos)
             is NoticeBoardBlockEntity blockEntity
@@ -99,13 +103,7 @@ public partial class NoticeBoardMainWindowGui : GuiDialog
             capi.World.Player.InventoryManager.CloseInventory(blockEntity.Inventory);
         }
 
-        capi.Network.SendBlockEntityPacket(
-            this.boardPos.X,
-            this.boardPos.Y,
-            this.boardPos.Z,
-            999,
-            null
-        );
+        capi.Network.SendBlockEntityPacket(this.boardPos, 999, null);
     }
 
     private void OnTabClicked(int tabIndex)
@@ -127,7 +125,16 @@ public partial class NoticeBoardMainWindowGui : GuiDialog
         this.isComposing = true;
         capi.Network.GetChannel("noticeboard").SendPacket(new RequestAllPlayers());
         bool isOwner = (this.boardPlayerId == capi.World.Player.PlayerUID);
-        NoticeBoardBlockEntity blockEntity = capi.GetNoticeBoardEntity(this.boardPos);
+        NoticeBoardBlockEntity blockEntity = this.boardPos != null
+            ? capi.GetNoticeBoardEntity(this.boardPos)
+            : null;
+
+        if (this.boardPos == null)
+        {
+            capi.Logger.Warning(
+                "[NoticeBoard] Opening GUI without a valid board position; inventory slots will be unavailable."
+            );
+        }
 
         double dialogWidth = 800;
         double listWidth = 720;
@@ -236,15 +243,9 @@ public partial class NoticeBoardMainWindowGui : GuiDialog
         {
             if (blockEntity != null && this.enableParchment)
             {
-                dialogComposer.AddItemSlotGrid(
+            dialogComposer.AddItemSlotGrid(
                     blockEntity.Inventory,
-                    (packet) =>
-                        capi.Network.SendBlockEntityPacket(
-                            boardPos.X,
-                            boardPos.Y,
-                            boardPos.Z,
-                            packet
-                        ),
+                    (packet) => capi.Network.SendBlockEntityPacket(boardPos.X, boardPos.Y, boardPos.Z, packet),
                     1,
                     new int[] { 4 },
                     documentSlotBounds,
@@ -253,13 +254,7 @@ public partial class NoticeBoardMainWindowGui : GuiDialog
 
                 dialogComposer.AddItemSlotGrid(
                     blockEntity.Inventory,
-                    (packet) =>
-                        capi.Network.SendBlockEntityPacket(
-                            boardPos.X,
-                            boardPos.Y,
-                            boardPos.Z,
-                            packet
-                        ),
+                    (packet) => capi.Network.SendBlockEntityPacket(boardPos.X, boardPos.Y, boardPos.Z, packet),
                     4,
                     new int[] { 0, 1, 2, 3 },
                     slotBounds,
@@ -355,7 +350,7 @@ public partial class NoticeBoardMainWindowGui : GuiDialog
                 OnNewScrollbarValue(this.currentScrollY);
             }
 
-            if (this.isLocked && !isOwner)
+            if (this.permissionMode == (int)BoardPermissionMode.Locked && !isOwner)
             {
                 GuiComposerHelpers
                     .GetButton(base.SingleComposer, "addNoticeButton")

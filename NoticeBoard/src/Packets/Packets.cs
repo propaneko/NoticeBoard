@@ -136,13 +136,13 @@ namespace NoticeBoard.Packets
     }
 
     [ProtoContract]
-    public class EditIsLocked
+    public class EditPermissionMode
     {
         [ProtoMember(1)]
         public string BoardId { get; set; }
 
         [ProtoMember(2)]
-        public bool IsLocked { get; set; }
+        public int PermissionMode { get; set; }
     }
 
     [ProtoContract]
@@ -298,7 +298,7 @@ namespace NoticeBoard.Packets
         public string Pos { get; set; }
 
         [ProtoMember(9)]
-        public int IsLocked { get; set; }
+        public int PermissionMode { get; set; }
 
         [ProtoMember(10)]
         public int EnableParticles { get; set; }

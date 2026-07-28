@@ -1,4 +1,5 @@
 ﻿using NoticeBoard.BlockType;
+using NoticeBoard.Configs;
 using NoticeBoard.Extensions;
 using NoticeBoard.Packets;
 using System;
@@ -306,32 +307,37 @@ public partial class NoticeBoardMainWindowGui
                     .WithFixedOffset(textPaddingLeft, 12.0 + headerHeight + headerGap)
                     .WithFixedWidth(actualTextWidth);
 
-                double buttonBaseX = totalPaperWidth - 35.0;
+                double buttonSize = 18.0;
+                double buttonSpacing = 26.0;
+                double buttonBaseX = totalPaperWidth - 28.0;
+                double buttonY = containerRowBounds.fixedY + 22.0;
 
                 ElementBounds deleteButtonBounds = containerRowBounds
                     .RightCopy(0.0, 0.0, 0.0, 0.0)
-                    .WithFixedPosition(buttonBaseX, containerRowBounds.fixedY + 20.0)
-                    .WithFixedHeight(30.0)
-                    .WithFixedWidth(30.0);
+                    .WithFixedPosition(buttonBaseX, buttonY)
+                    .WithFixedHeight(buttonSize)
+                    .WithFixedWidth(buttonSize);
 
                 ElementBounds editButtonBounds = containerRowBounds
                     .RightCopy(0.0, 0.0, 0.0, 0.0)
-                    .WithFixedPosition(buttonBaseX - 35.0, containerRowBounds.fixedY + 20.0)
-                    .WithFixedHeight(30.0)
-                    .WithFixedWidth(30.0);
+                    .WithFixedPosition(buttonBaseX - buttonSpacing, buttonY)
+                    .WithFixedHeight(buttonSize)
+                    .WithFixedWidth(buttonSize);
 
                 ElementBounds bumpButtonBounds = containerRowBounds
                     .RightCopy(0.0, 0.0, 0.0, 0.0)
-                    .WithFixedPosition(buttonBaseX - 70.0, containerRowBounds.fixedY + 20.0)
-                    .WithFixedHeight(30.0)
-                    .WithFixedWidth(30.0);
+                    .WithFixedPosition(buttonBaseX - 2.0 * buttonSpacing, buttonY)
+                    .WithFixedHeight(buttonSize)
+                    .WithFixedWidth(buttonSize);
 
                 scrollArea.Add(new GuiElementRichtext(this.capi, nameVtml, nameBounds), -1);
                 scrollArea.Add(new GuiElementRichtext(this.capi, dateVtml, dateBounds), -1);
                 scrollArea.Add(new GuiElementRichtext(this.capi, bodyVtml, bodyBounds), -1);
 
                 bool isSender = (message.PlayerId == capi.World.Player.PlayerUID);
-                bool canEdit = isOwner || (!this.isLocked && isSender);
+                bool canEdit = isOwner
+                    || this.permissionMode == (int)BoardPermissionMode.All
+                    || (this.permissionMode == (int)BoardPermissionMode.Default && isSender);
                 if (canEdit)
                 {
                     scrollArea.Add(

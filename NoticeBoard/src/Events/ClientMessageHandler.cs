@@ -36,7 +36,7 @@ namespace NoticeBoard.Events
 
         private void OnPlayersReceived(ResponseAllPlayers packet)
         {
-            messageBoardGui.UpdatePlayersList(packet.Players);
+            messageBoardGui?.UpdatePlayersList(packet.Players);
         }
 
         private void OnUnreadParticlesPacketReceived(UnreadParticlesPacket packet)

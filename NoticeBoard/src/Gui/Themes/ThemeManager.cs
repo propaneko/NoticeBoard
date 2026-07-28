@@ -120,7 +120,8 @@ public static class ThemeManager
     };
     public static ParchmentPalette GetCurrentTheme(string themeName)
     {
-        return themesList.Find((theme) => theme.Name == themeName);
+        return themesList.Find((theme) => theme.Name == themeName)
+            ?? themesList.FirstOrDefault();
     }
 
     /// <summary>

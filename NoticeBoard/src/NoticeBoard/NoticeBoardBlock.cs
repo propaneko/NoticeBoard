@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text;
+using NoticeBoard.Configs;
 using NoticeBoard.Packets;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -10,7 +11,7 @@ using Vintagestory.API.Util;
 
 namespace NoticeBoard.BlockType;
 
-public class NoticeBoardBlock : Block
+public class NoticeBoardBlock : Block, IClaimTraverseable
 {
     WorldInteraction[] interactions;
 
@@ -177,6 +178,9 @@ public class NoticeBoardBlock : Block
        BlockSelection blockSel
    )
     {
+        if (!world.Claims.TryAccess(byPlayer, blockSel.Position, EnumBlockAccessFlags.Use))
+            return false;
+
         if (byPlayer.InventoryManager.ActiveHotbarSlot?.Itemstack?.Block is NoticeBoardBlock)
             return base.OnBlockInteractStart(world, byPlayer, blockSel);
 
@@ -259,14 +263,19 @@ public class NoticeBoardBlock : Block
             var props = blockEntity.BoardProperties;
             var sb = new StringBuilder();
 
-            if (!string.IsNullOrEmpty(props.PlayerName))
+            if (!string.IsNullOrEmpty(props.BoardName))
                 sb.AppendLine($"Name: {props.BoardName}");
 
             if (!string.IsNullOrEmpty(props.PlayerName))
                 sb.AppendLine($"Owner: {props.PlayerName}");
 
-            if (props.IsLocked == 1)
-                sb.AppendLine("Locked");
+            string modeLabel = props.PermissionMode switch
+            {
+                (int)BoardPermissionMode.All => Lang.Get("noticeboard:blockinfo-mode-all"),
+                (int)BoardPermissionMode.Locked => Lang.Get("noticeboard:blockinfo-mode-locked"),
+                _ => Lang.Get("noticeboard:blockinfo-mode-default"),
+            };
+            sb.AppendLine(modeLabel);
 
             return sb.ToString().TrimEnd();
         }
@@ -287,8 +296,6 @@ public class NoticeBoardBlock : Block
 
         currentEntity.ToTreeAttributes(blockEntityData);
 
-        string[] splitPath = currentBlock.Code.Path.Split("-");
-
         Block newBlock = world.GetBlock(
             new AssetLocation(
                 "noticeboard",
@@ -296,7 +303,7 @@ public class NoticeBoardBlock : Block
             )
         );
 
-        if (newBlock != null)
+        if (newBlock != null && newBlock.BlockId != currentBlock.BlockId)
         {
             world.BlockAccessor.SetBlock(newBlock.BlockId, pos);
 
@@ -305,7 +312,6 @@ public class NoticeBoardBlock : Block
             if (newEntity != null)
             {
                 newEntity.FromTreeAttributes(blockEntityData, world);
-
                 newEntity.MarkDirty(true);
             }
         }
@@ -474,20 +480,20 @@ public class NoticeBoardBlock : Block
                 if (block == null)
                     block = world.BlockAccessor.GetBlock(CodeWithParts("wall", "north"));
 
-                ItemStack dropStack = new ItemStack(block);
-                ITreeAttribute invTree = new TreeAttribute();
-                blockEntity.Inventory.ToTreeAttributes(invTree);
-                dropStack.Attributes["inventory"] = invTree;
-                dropStack.Attributes.SetString("uniqueID", blockEntity.uniqueID);
-                world.SpawnItemEntity(dropStack, pos.ToVec3d().Add(0.5, 0.5, 0.5));
+                if (block != null)
+                {
+                    ItemStack dropStack = new ItemStack(block);
+                    ITreeAttribute invTree = new TreeAttribute();
+                    blockEntity.Inventory?.ToTreeAttributes(invTree);
+                    dropStack.Attributes["inventory"] = invTree;
+                    dropStack.Attributes.SetString("uniqueID", blockEntity.uniqueID);
+                    world.SpawnItemEntity(dropStack, pos.ToVec3d().Add(0.5, 0.5, 0.5));
+                }
             }
         }
 
         SpawnBlockBrokenParticles(pos, byPlayer);
 
         world.BlockAccessor.SetBlock(0, pos);
-
-        if (!world.Side.IsServer())
-            return;
     }
 }

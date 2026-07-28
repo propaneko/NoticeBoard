@@ -84,14 +84,18 @@ public class SQLiteHandler
             using var reader = command.ExecuteReader();
             while (reader.Read())
             {
-                player = new PlayerEntry { PlayerUID = reader.GetString(0) };
+                player = new PlayerEntry
+                {
+                    PlayerUID = reader.GetString(0),
+                    PlayerName = reader.GetString(1),
+                };
             }
         }
         catch (Exception e)
         {
             NoticeBoardModSystem
                 .getSAPI()
-                .Logger.Error($"[NoticeBoard] Could not get messages: {e.Message}");
+                .Logger.Error($"[NoticeBoard] Could not get player by id: {e.Message}");
         }
 
         return player;
@@ -113,14 +117,18 @@ public class SQLiteHandler
             using var reader = command.ExecuteReader();
             while (reader.Read())
             {
-                player = new PlayerEntry { PlayerUID = reader.GetString(0) };
+                player = new PlayerEntry
+                {
+                    PlayerUID = reader.GetString(0),
+                    PlayerName = reader.GetString(1),
+                };
             }
         }
         catch (Exception e)
         {
             NoticeBoardModSystem
                 .getSAPI()
-                .Logger.Error($"[NoticeBoard] Could not get messages: {e.Message}");
+                .Logger.Error($"[NoticeBoard] Could not get player by name: {e.Message}");
         }
 
         return player;
@@ -135,9 +143,16 @@ public class SQLiteHandler
 
         try
         {
+            string playerName = "Unknown";
+            var player = NoticeBoardModSystem.getSAPI()?.World?.PlayerByUid(packet.PlayerId);
+            if (player != null)
+                playerName = player.PlayerName;
+
+            AddPlayerToDatabase(packet.PlayerId, playerName);
+
             string query =
                 @"
-                INSERT OR IGNORE INTO noticeBoard (boardId, ownerPlayerId, pos, isLocked) 
+                INSERT OR IGNORE INTO noticeBoard (boardId, ownerPlayerId, pos, permissionMode) 
                 VALUES (@boardId, @playerId, @pos, 0)";
 
             using var command = new SqliteCommand(query, SQLiteConnection);
@@ -174,23 +189,23 @@ public class SQLiteHandler
         }
     }
 
-    public void EditIsLocked(EditIsLocked packet)
+    public void EditPermissionMode(EditPermissionMode packet)
     {
         SQLiteDatabase.TryOpenConnection();
 
         try
         {
-            string query = "UPDATE noticeBoard SET isLocked = @isLocked WHERE boardId = @boardId";
+            string query = "UPDATE noticeBoard SET permissionMode = @permissionMode WHERE boardId = @boardId";
             using var command = new SqliteCommand(query, SQLiteConnection);
             command.Parameters.AddWithValue("@boardId", packet.BoardId);
-            command.Parameters.AddWithValue("@isLocked", packet.IsLocked ? 1 : 0);
+            command.Parameters.AddWithValue("@permissionMode", packet.PermissionMode);
             command.ExecuteNonQuery();
         }
         catch (Exception e)
         {
             NoticeBoardModSystem
                 .getSAPI()
-                .Logger.Error($"[NoticeBoard] Could not update lock status: {e.Message}");
+                .Logger.Error($"[NoticeBoard] Could not update permission mode: {e.Message}");
         }
     }
 
@@ -429,14 +444,13 @@ public class SQLiteHandler
     public NoticeBoardObject GetBoardData(string boardId)
     {
         SQLiteDatabase.TryOpenConnection();
-        var noticeBoard = new NoticeBoardObject();
 
         try
         {
             string query =
                 @"
                 SELECT nb.boardId, nb.boardName, nb.boardFont, nb.boardFontSize, nb.boardTheme, nb.ownerPlayerId, 
-                       nb.pos, nb.isLocked, nb.enableParticles, nb.enableParchment, p.playerName,
+                       nb.pos, nb.permissionMode, nb.enableParticles, nb.enableParchment, p.playerName,
                        nb.enableProximity, nb.proximityChannel, nb.proximityDistance
                 FROM noticeBoard nb
                 LEFT JOIN players p ON p.playerId = nb.ownerPlayerId
@@ -446,27 +460,26 @@ public class SQLiteHandler
             command.Parameters.AddWithValue("@boardId", boardId);
 
             using var reader = command.ExecuteReader();
-            if (reader.Read())
-            {
-                noticeBoard.BoardId = reader.GetString(0);
-                noticeBoard.BoardName = reader.GetString(1);
-                noticeBoard.BoardFont = reader.GetString(2);
-                noticeBoard.BoardFontSize = reader.GetFloat(3);
-                noticeBoard.BoardTheme = reader.GetString(4);
-                noticeBoard.PlayerId = reader.GetString(5);
-                noticeBoard.Pos = reader.GetString(6);
-                noticeBoard.IsLocked = reader.GetInt16(7);
-                noticeBoard.EnableParticles = reader.GetInt16(8);
-                noticeBoard.EnableParchment = reader.GetInt16(9);
-                noticeBoard.PlayerName = reader.IsDBNull(10) ? "Unknown" : reader.GetString(10);
-                noticeBoard.EnableProximity = reader.IsDBNull(11) ? 0 : reader.GetInt16(11);
-                noticeBoard.ProximityChannel = reader.IsDBNull(12)
-                    ? "Proximity"
-                    : reader.GetString(12);
-                noticeBoard.ProximityDistance = reader.IsDBNull(13) ? 100 : reader.GetInt16(13);
-            }
+            if (!reader.Read())
+                return null;
 
-            return noticeBoard;
+            return new NoticeBoardObject
+            {
+                BoardId = reader.GetString(0),
+                BoardName = reader.GetString(1),
+                BoardFont = reader.GetString(2),
+                BoardFontSize = reader.GetFloat(3),
+                BoardTheme = reader.GetString(4),
+                PlayerId = reader.GetString(5),
+                Pos = reader.GetString(6),
+                PermissionMode = reader.GetInt16(7),
+                EnableParticles = reader.GetInt16(8),
+                EnableParchment = reader.GetInt16(9),
+                PlayerName = reader.IsDBNull(10) ? "Unknown" : reader.GetString(10),
+                EnableProximity = reader.IsDBNull(11) ? 0 : reader.GetInt16(11),
+                ProximityChannel = reader.IsDBNull(12) ? "Proximity" : reader.GetString(12),
+                ProximityDistance = reader.IsDBNull(13) ? 100 : reader.GetInt16(13),
+            };
         }
         catch (Exception e)
         {

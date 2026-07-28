@@ -62,10 +62,6 @@
 </ItemGroup>
 
 <ItemGroup>
-  <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="10.0.8" />
-</ItemGroup>
-
-<ItemGroup>
   <Folder Include="assets\game\" />
   <Folder Include="src\Renderers\" />
 </ItemGroup>

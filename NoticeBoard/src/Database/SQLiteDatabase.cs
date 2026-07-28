@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using Microsoft.Data.Sqlite;
 using NoticeBoard;
@@ -14,7 +15,12 @@ public class SQLiteDatabase
 
     public SQLiteDatabase(string databaseName = "noticeboard.db")
     {
-        var api = NoticeBoardModSystem.getSAPI();
+        var api =
+            NoticeBoardModSystem.getSAPI()
+            ?? throw new InvalidOperationException(
+                "[NoticeBoard] Cannot create SQLiteDatabase before server API is available."
+            );
+
         string worldId = api.World?.SavegameIdentifier;
 
         if (string.IsNullOrEmpty(worldId))
@@ -28,7 +34,7 @@ public class SQLiteDatabase
             Directory.CreateDirectory(modConfigDir);
         }
         this.dbFilePath = Path.Combine(modConfigDir, databaseName);
-        NoticeBoardModSystem.getSAPI().Logger.Debug("[noticeboard] path db is " + this.dbFilePath);
+        api.Logger.Debug("[noticeboard] path db is " + this.dbFilePath);
         this.connection = new SqliteConnection("Data Source=" + this.dbFilePath + ";");
         this.TryOpenConnection();
         this.InitializeDatabase();
@@ -66,7 +72,7 @@ public class SQLiteDatabase
 
                 ownerPlayerId TEXT NOT NULL,
                 pos TEXT,
-                isLocked INTEGER DEFAULT 0,
+                permissionMode INTEGER DEFAULT 0,
                 enableParticles INTEGER DEFAULT 1,
                 enableParchment INTEGER DEFAULT 1,
                 enableProximity INTEGER DEFAULT 0,
@@ -111,17 +117,86 @@ public class SQLiteDatabase
             CREATE INDEX IF NOT EXISTS idx_playerBoardReads_board ON playerBoardReads(boardId);
         ";
 
-        try
+        using (var command = new SqliteCommand(createTableQuery, connection))
         {
-            using (var command = new SqliteCommand(createTableQuery, connection))
+            command.ExecuteNonQuery();
+        }
+
+        MigrateNoticeBoardSchema();
+    }
+
+    private void MigrateNoticeBoardSchema()
+    {
+        HashSet<string> columns = GetTableColumns("noticeBoard");
+        if (columns.Count == 0)
+            return;
+
+        EnsureColumn(columns, "noticeBoard", "boardName", "TEXT DEFAULT 'Notice Board'");
+        EnsureColumn(columns, "noticeBoard", "boardFont", "TEXT DEFAULT 'Ari-W9500'");
+        EnsureColumn(columns, "noticeBoard", "boardFontSize", "REAL DEFAULT 16.0");
+        EnsureColumn(columns, "noticeBoard", "boardTheme", "TEXT DEFAULT 'Classic Aged'");
+        EnsureColumn(columns, "noticeBoard", "pos", "TEXT");
+        EnsureColumn(columns, "noticeBoard", "enableParticles", "INTEGER DEFAULT 1");
+        EnsureColumn(columns, "noticeBoard", "enableParchment", "INTEGER DEFAULT 1");
+        EnsureColumn(columns, "noticeBoard", "enableProximity", "INTEGER DEFAULT 0");
+        EnsureColumn(columns, "noticeBoard", "proximityChannel", "TEXT DEFAULT 'Proximity'");
+        EnsureColumn(columns, "noticeBoard", "proximityDistance", "INTEGER DEFAULT 100");
+        EnsureColumn(columns, "noticeBoard", "createdAt", "DATETIME DEFAULT CURRENT_TIMESTAMP");
+
+        if (!columns.Contains("permissionMode"))
+        {
+            ExecuteNonQuery(
+                "ALTER TABLE noticeBoard ADD COLUMN permissionMode INTEGER DEFAULT 0"
+            );
+            columns.Add("permissionMode");
+
+            if (columns.Contains("isLocked"))
             {
-                command.ExecuteNonQuery();
+                // Legacy isLocked (0/1) → BoardPermissionMode.Default (0) / Locked (2)
+                ExecuteNonQuery(
+                    @"UPDATE noticeBoard
+                      SET permissionMode = CASE WHEN isLocked = 1 THEN 2 ELSE 0 END"
+                );
             }
+
+            NoticeBoardModSystem
+                .getSAPI()
+                ?.Logger.Notification(
+                    "[NoticeBoard] Migrated noticeBoard schema: added permissionMode column."
+                );
         }
-        catch (Exception e)
+    }
+
+    private HashSet<string> GetTableColumns(string tableName)
+    {
+        var columns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        using var command = new SqliteCommand($"PRAGMA table_info({tableName})", connection);
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
         {
-            throw;
+            columns.Add(reader.GetString(1));
         }
+        return columns;
+    }
+
+    private void EnsureColumn(
+        HashSet<string> columns,
+        string tableName,
+        string columnName,
+        string columnDefinition
+    )
+    {
+        if (columns.Contains(columnName))
+            return;
+
+        ExecuteNonQuery($"ALTER TABLE {tableName} ADD COLUMN {columnName} {columnDefinition}");
+        columns.Add(columnName);
+    }
+
+    private void ExecuteNonQuery(string sql)
+    {
+        using var command = new SqliteCommand(sql, connection);
+        command.ExecuteNonQuery();
     }
 
     public void TryOpenConnection()
@@ -142,6 +217,7 @@ public class SQLiteDatabase
         {
             connection.Close();
             connection.Dispose();
+            connection = null;
         }
     }
 }

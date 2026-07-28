@@ -3,14 +3,30 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using HarmonyLib;
+using NoticeBoard.Configs;
 using NoticeBoard.Packets;
 using Vintagestory.API.Client;
+using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 
 namespace NoticeBoard.src.Gui.Windows;
 
 public partial class NoticeBoardMainWindowGui
 {
+    private static bool IsTheBasicsLoaded(ICoreClientAPI capi)
+    {
+        if (capi.ModLoader.IsModEnabled("thebasics"))
+            return true;
+
+        foreach (var mod in capi.ModLoader.Mods)
+        {
+            if (string.Equals(mod.Info?.ModID, "thebasics", StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
+    }
+
     private void PopulateSettingsTab(GuiComposer composer, ElementBounds insetBounds)
     {
         string[] fontValues = FontManager.FontDisplayNames;
@@ -21,7 +37,11 @@ public partial class NoticeBoardMainWindowGui
         int sliderWidth = 200;
 
         bool isOwner = (this.boardPlayerId == capi.World.Player.PlayerUID);
-        bool isProximityLoaded = capi.ModLoader.IsModEnabled("thebasics");
+        bool isProximityLoaded = IsTheBasicsLoaded(capi);
+
+        capi.Logger.Notification(
+            $"[NoticeBoard] Proximity settings visible={isProximityLoaded} (thebasics check)"
+        );
 
         ElementBounds leftBounds = ElementBounds
             .FixedSize(280, 30)
@@ -175,25 +195,39 @@ public partial class NoticeBoardMainWindowGui
             "themeDropdown"
         );
 
-        // Lock Notice Board
+        // Permission Mode
         leftBounds = leftBounds.BelowCopy(0, 10);
-        rightBounds = rightBounds.BelowCopy(0, 10).WithFixedSize(checkboxWidth, 30);
+        rightBounds = rightBounds.BelowCopy(0, 10).WithFixedSize(inputWidth, 30);
         composer.AddStaticText(
-            Lang.Get("noticeboard:settings-board-lock"),
+            Lang.Get("noticeboard:settings-board-permission-mode"),
             CairoFont.WhiteSmallText(),
             leftBounds
         );
 
-        composer.AddSwitch(
-            (state) =>
+        string[] permissionModeCodes = ["0", "1", "2"];
+        string[] permissionModeNames =
+        [
+            Lang.Get("noticeboard:settings-board-permission-mode-default"),
+            Lang.Get("noticeboard:settings-board-permission-mode-all"),
+            Lang.Get("noticeboard:settings-board-permission-mode-locked"),
+        ];
+        int selectedPermissionModeIndex = Math.Clamp(this.permissionMode, 0, permissionModeCodes.Length - 1);
+
+        composer.AddDropDown(
+            permissionModeCodes,
+            permissionModeNames,
+            selectedPermissionModeIndex,
+            (code, selected) =>
             {
-                this.isLocked = state;
-                UpdateDirtyState();
+                if (int.TryParse(code, out int parsedMode))
+                {
+                    this.permissionMode = parsedMode;
+                    UpdateDirtyState();
+                }
             },
             rightBounds,
-            "lockSwitch"
+            "permissionModeDropdown"
         );
-        composer.GetSwitch("lockSwitch").On = this.isLocked;
 
         // Enable Parchment
         leftBounds = leftBounds.BelowCopy(0, 10);
@@ -256,54 +290,54 @@ public partial class NoticeBoardMainWindowGui
                 "proximitySwitch"
             );
             composer.GetSwitch("proximitySwitch").On = this.enableProximityMessage;
+
+            // Proximity Channel Name
+            leftBounds = leftBounds.BelowCopy(0, 10);
+            rightBounds = rightBounds.BelowCopy(0, 10).WithFixedSize(inputWidth, 30);
+            composer.AddStaticText(
+                Lang.Get("noticeboard:settings-board-proximity-channel"),
+                CairoFont.WhiteSmallText(),
+                leftBounds
+            );
+
+            composer.AddTextInput(
+                rightBounds,
+                (text) =>
+                {
+                    this.proximityChannel = text;
+                    UpdateDirtyState();
+                },
+                CairoFont.WhiteSmallText(),
+                "channelInput"
+            );
+            composer.GetTextInput("channelInput").SetValue(this.proximityChannel ?? "");
+
+            // Proximity Distance
+            leftBounds = leftBounds.BelowCopy(0, 10);
+            rightBounds = rightBounds.BelowCopy(0, 10).WithFixedSize(sliderWidth, 30);
+            this.pendingDistance = (int)Math.Max(1, this.proximityDistance);
+            composer.AddDynamicText(
+                $"{Lang.Get("noticeboard:settings-board-proximity-distance")} {this.pendingDistance}",
+                CairoFont.WhiteSmallText(),
+                leftBounds,
+                "distanceLabel"
+            );
+
+            composer.AddSlider(
+                (newValue) =>
+                {
+                    this.pendingDistance = newValue;
+                    composer
+                        .GetDynamicText("distanceLabel")
+                        .SetNewText($"Proximity Distance: {newValue}");
+                    UpdateDirtyState();
+                    return true;
+                },
+                rightBounds,
+                "distanceSlider"
+            );
+            composer.GetSlider("distanceSlider").SetValues(this.pendingDistance, 1, 1000, 1);
         }
-
-        // Proximity Channel Name
-        leftBounds = leftBounds.BelowCopy(0, 10);
-        rightBounds = rightBounds.BelowCopy(0, 10).WithFixedSize(inputWidth, 30);
-        composer.AddStaticText(
-            Lang.Get("noticeboard:settings-board-proximity-channel"),
-            CairoFont.WhiteSmallText(),
-            leftBounds
-        );
-
-        composer.AddTextInput(
-            rightBounds,
-            (text) =>
-            {
-                this.proximityChannel = text;
-                UpdateDirtyState();
-            },
-            CairoFont.WhiteSmallText(),
-            "channelInput"
-        );
-        composer.GetTextInput("channelInput").SetValue(this.proximityChannel ?? "");
-
-        // Proximity Distance
-        leftBounds = leftBounds.BelowCopy(0, 10);
-        rightBounds = rightBounds.BelowCopy(0, 10).WithFixedSize(sliderWidth, 30);
-        this.pendingDistance = (int)Math.Max(1, this.proximityDistance);
-        composer.AddDynamicText(
-            $"{Lang.Get("noticeboard:settings-board-proximity-distance")} {this.pendingDistance}",
-            CairoFont.WhiteSmallText(),
-            leftBounds,
-            "distanceLabel"
-        );
-
-        composer.AddSlider(
-            (newValue) =>
-            {
-                this.pendingDistance = newValue;
-                composer
-                    .GetDynamicText("distanceLabel")
-                    .SetNewText($"Proximity Distance: {newValue}");
-                UpdateDirtyState();
-                return true;
-            },
-            rightBounds,
-            "distanceSlider"
-        );
-        composer.GetSlider("distanceSlider").SetValues(this.pendingDistance, 1, 1000, 1);
 
         // Save Button
         ElementBounds btnSaveAllBounds = leftBounds.BelowCopy(0, 20).WithFixedSize(160, 30);
@@ -322,7 +356,7 @@ public partial class NoticeBoardMainWindowGui
         var p = this.noticeBoardPacket.BoardProperties;
 
         this.isDirty =
-            (this.isLocked != (p.IsLocked != 0))
+            (this.permissionMode != p.PermissionMode)
             || (this.enableParticles != (p.EnableParticles != 0))
             || (this.enableParchment != (p.EnableParchment != 0))
             || (this.enableProximityMessage != (p.EnableProximity != 0))
@@ -342,12 +376,16 @@ public partial class NoticeBoardMainWindowGui
         var p = this.noticeBoardPacket.BoardProperties;
         var channel = capi.Network.GetChannel("noticeboard");
 
-        if (this.isLocked != (p.IsLocked != 0))
+        if (this.permissionMode != p.PermissionMode)
         {
             channel.SendPacket(
-                new EditIsLocked { BoardId = this.boardId, IsLocked = this.isLocked }
+                new EditPermissionMode
+                {
+                    BoardId = this.boardId,
+                    PermissionMode = this.permissionMode,
+                }
             );
-            p.IsLocked = this.isLocked ? 1 : 0;
+            p.PermissionMode = this.permissionMode;
         }
         if (this.enableParticles != (p.EnableParticles != 0))
         {
@@ -454,7 +492,7 @@ public partial class NoticeBoardMainWindowGui
     private void ResetSettings()
     {
         var p = this.noticeBoardPacket.BoardProperties;
-        this.isLocked = p.IsLocked != 0;
+        this.permissionMode = p.PermissionMode;
         this.enableParticles = p.EnableParticles != 0;
         this.enableParchment = p.EnableParchment != 0;
         this.enableProximityMessage = p.EnableProximity != 0;

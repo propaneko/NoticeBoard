@@ -66,28 +66,34 @@ public class NoticeBoardBlockEntity : BlockEntityOpenableContainer
 
     public NoticeBoardBlockEntity() { }
 
-    public override void Initialize(ICoreAPI api)
-    {
-        bool isNewlyPlaced = inventory == null;
-
-        if (isNewlyPlaced)
-            InitInventory(Block, api);
-
-        base.Initialize(api);
-
-        if (!Api.World.Side.IsServer())
-            return;
-
-        db = new SQLiteHandler();
-
-        if (!string.IsNullOrEmpty(uniqueID))
+        public override void Initialize(ICoreAPI api)
         {
-            BoardProperties = db.GetBoardData(uniqueID);
-            MarkDirty(true);
-        }
+            bool isNewlyPlaced = inventory == null;
 
-        listener = RegisterGameTickListener(OnPerformAction, (int)(actionInterval * 1000));
-    }
+            if (isNewlyPlaced)
+                InitInventory(Block, api);
+
+            base.Initialize(api);
+
+            if (!Api.World.Side.IsServer())
+                return;
+
+            if (NoticeBoardModSystem.getModInstance()?.getDatabaseHandler() == null)
+            {
+                Api.Logger.Warning("[NoticeBoard] BlockEntity initialized before database was ready.");
+                return;
+            }
+
+            db = new SQLiteHandler();
+
+            if (!string.IsNullOrEmpty(uniqueID))
+            {
+                BoardProperties = db.GetBoardData(uniqueID);
+                MarkDirty(true);
+            }
+
+            listener = RegisterGameTickListener(OnPerformAction, (int)(actionInterval * 1000));
+        }
 
     private void InitInventory(Block Block, ICoreAPI api)
     {
@@ -252,34 +258,39 @@ public class NoticeBoardBlockEntity : BlockEntityOpenableContainer
         lastUnreadCacheUpdate = now;
     }
 
-    private void UpdateBoardPropertiesCache()
-    {
-        long now = Api.World.ElapsedMilliseconds;
-
-        if (now - lastBoardPropertiesCacheUpdate < 60000)
-            return;
-
-        lastBoardPropertiesCacheUpdate = now;
-
-        var freshData = db.GetBoardData(uniqueID);
-
-        if (
-            freshData?.BoardName != BoardProperties?.BoardName
-            || freshData?.PlayerName != BoardProperties?.PlayerName
-            || freshData?.IsLocked != BoardProperties?.IsLocked
-            || freshData?.BoardFont != BoardProperties?.BoardFont
-            || freshData?.EnableParticles != BoardProperties?.EnableParticles
-            || freshData?.EnableParchment != BoardProperties?.EnableParchment
-        )
+        private void UpdateBoardPropertiesCache()
         {
-            BoardProperties = freshData;
-            MarkDirty(true);
+            long now = Api.World.ElapsedMilliseconds;
+
+            if (now - lastBoardPropertiesCacheUpdate < 60000)
+                return;
+
+            lastBoardPropertiesCacheUpdate = now;
+
+            var freshData = db.GetBoardData(uniqueID);
+
+            if (freshData == null)
+                return;
+
+            bool changed =
+                BoardProperties == null
+                || freshData.BoardName != BoardProperties.BoardName
+                || freshData.PlayerName != BoardProperties.PlayerName
+                || freshData.PermissionMode != BoardProperties.PermissionMode
+                || freshData.BoardFont != BoardProperties.BoardFont
+                || freshData.EnableParticles != BoardProperties.EnableParticles
+                || freshData.EnableParchment != BoardProperties.EnableParchment
+                || Math.Abs(freshData.BoardFontSize - BoardProperties.BoardFontSize) > 0.001f
+                || freshData.EnableProximity != BoardProperties.EnableProximity
+                || freshData.ProximityChannel != BoardProperties.ProximityChannel
+                || freshData.ProximityDistance != BoardProperties.ProximityDistance;
+
+            if (changed)
+            {
+                BoardProperties = freshData;
+                MarkDirty(true);
+            }
         }
-        else
-        {
-            BoardProperties = freshData;
-        }
-    }
 
     private void UpdateMessageCountCache()
     {

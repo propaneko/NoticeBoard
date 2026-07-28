@@ -39,9 +39,9 @@ namespace NoticeBoard
             {
                 NoticeBoardModSystem.databaseHandler = new SQLiteDatabase("noticeboard.db");
             }
-            catch (SqliteException ex)
+            catch (Exception ex)
             {
-                NoticeBoardModSystem.sapi.Logger.Error("loadDatabase:" + ex.Message);
+                NoticeBoardModSystem.sapi?.Logger.Error("[NoticeBoard] LoadDatabase failed: " + ex.Message);
             }
         }
 
@@ -84,7 +84,7 @@ namespace NoticeBoard
                 .RegisterMessageType<PlayerBumpMessage>()
                 .RegisterMessageType<PlayerDestroyNoticeBoard>()
                 .RegisterMessageType<PlayerCreateNoticeBoard>()
-                .RegisterMessageType<EditIsLocked>()
+                .RegisterMessageType<EditPermissionMode>()
                 .RegisterMessageType<EditEnableParticles>()
                 .RegisterMessageType<EditEnableParchment>()
                 .RegisterMessageType<EditBoardName>()
@@ -131,6 +131,12 @@ namespace NoticeBoard
 
         private void OnPlayerJoin(IServerPlayer byPlayer)
         {
+            if (NoticeBoardModSystem.databaseHandler == null)
+            {
+                sapi?.Logger.Warning("[NoticeBoard] Player joined before database was ready; skipping player registration.");
+                return;
+            }
+
             db = new SQLiteHandler();
             db.AddPlayerToDatabase(byPlayer.PlayerUID, byPlayer.PlayerName);
         }
