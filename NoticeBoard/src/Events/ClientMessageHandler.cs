@@ -24,8 +24,14 @@ namespace NoticeBoard.Events
 
         private void OnServerMessagesReceived(ResponseAllMessages packet)
         {
-            if (messageBoardGui == null || !messageBoardGui.IsOpened())
+            string incomingBoardId = packet.BoardProperties?.BoardId;
+            if (
+                messageBoardGui == null
+                || !messageBoardGui.IsOpened()
+                || messageBoardGui.BoardId != incomingBoardId
+            )
             {
+                messageBoardGui?.TryClose();
                 messageBoardGui = new NoticeBoardMainWindowGui("NoticeBoardGui", packet, capi);
                 messageBoardGui.TryOpen();
             }

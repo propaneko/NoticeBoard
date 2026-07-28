@@ -71,7 +71,7 @@ public class SQLiteHandler
     public PlayerEntry GetPlayerBytId(string playerId)
     {
         SQLiteDatabase.TryOpenConnection();
-        var player = new PlayerEntry();
+        PlayerEntry player = null;
 
         try
         {
@@ -82,7 +82,7 @@ public class SQLiteHandler
             command.Parameters.AddWithValue("@playerId", playerId);
 
             using var reader = command.ExecuteReader();
-            while (reader.Read())
+            if (reader.Read())
             {
                 player = new PlayerEntry
                 {
@@ -95,7 +95,7 @@ public class SQLiteHandler
         {
             NoticeBoardModSystem
                 .getSAPI()
-                .Logger.Error($"[NoticeBoard] Could not get player by id: {e.Message}");
+                .Logger.Error($"[NoticeBoard] Could not get player by id: {e}");
         }
 
         return player;
@@ -104,7 +104,7 @@ public class SQLiteHandler
     public PlayerEntry GetPlayerByName(string playerName)
     {
         SQLiteDatabase.TryOpenConnection();
-        var player = new PlayerEntry();
+        PlayerEntry player = null;
 
         try
         {
@@ -115,7 +115,7 @@ public class SQLiteHandler
             command.Parameters.AddWithValue("@playerName", playerName);
 
             using var reader = command.ExecuteReader();
-            while (reader.Read())
+            if (reader.Read())
             {
                 player = new PlayerEntry
                 {
@@ -128,7 +128,7 @@ public class SQLiteHandler
         {
             NoticeBoardModSystem
                 .getSAPI()
-                .Logger.Error($"[NoticeBoard] Could not get player by name: {e.Message}");
+                .Logger.Error($"[NoticeBoard] Could not get player by name: {e}");
         }
 
         return player;
@@ -551,7 +551,6 @@ public class SQLiteHandler
     public Message GetMessageById(int messageId)
     {
         SQLiteDatabase.TryOpenConnection();
-        var message = new Message();
 
         try
         {
@@ -567,22 +566,24 @@ public class SQLiteHandler
             command.Parameters.AddWithValue("@messageId", messageId);
 
             using var reader = command.ExecuteReader();
-            if (reader.Read())
+            if (!reader.Read())
+                return null;
+
+            return new Message
             {
-                message.Id = reader.GetInt32(0);
-                message.Text = reader.GetString(1);
-                message.PlayerId = reader.GetString(2);
-                message.TotalHours = reader.GetDouble(3);
-                message.PlayerName = reader.IsDBNull(4) ? "Unknown" : reader.GetString(4);
-                message.CreatedAt = reader.GetDateTime(5);
-            }
-            return message;
+                Id = reader.GetInt32(0),
+                Text = reader.GetString(1),
+                PlayerId = reader.GetString(2),
+                TotalHours = reader.GetDouble(3),
+                PlayerName = reader.IsDBNull(4) ? "Unknown" : reader.GetString(4),
+                CreatedAt = reader.GetDateTime(5),
+            };
         }
         catch (Exception e)
         {
             NoticeBoardModSystem
                 .getSAPI()
-                .Logger.Error($"[NoticeBoard] Could not get message: {e.Message}");
+                .Logger.Error($"[NoticeBoard] Could not get message: {e}");
             return null;
         }
     }

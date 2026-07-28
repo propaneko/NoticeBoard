@@ -66,8 +66,15 @@ public partial class NoticeBoardMainWindowGui
 
     private bool OnPostDocumentClick()
     {
-        NoticeBoardBlockEntity blockEntity =
-            capi.GetNoticeBoardEntity(this.boardPos);
+        if (
+            capi.GetNoticeBoardEntity(this.boardPos)
+            is not NoticeBoardBlockEntity blockEntity
+        )
+        {
+            capi.TriggerIngameError(this, "missing_board", Lang.Get("noticeboard:messages-error-missing-board"));
+            return false;
+        }
+
         ItemSlot writtenSlot = blockEntity.Inventory[4]; // The 5th slot
 
         if (writtenSlot.Empty)
@@ -88,7 +95,7 @@ public partial class NoticeBoardMainWindowGui
         networkChannel.SendPacket(
             new PlayerSendDocument
             {
-                Document = "",
+                Document = textContent,
                 BoardId = noticeBoardPacket.BoardProperties.BoardId,
                 PlayerId = capi.World.Player.PlayerUID,
             }

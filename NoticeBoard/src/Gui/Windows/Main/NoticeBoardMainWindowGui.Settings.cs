@@ -92,10 +92,14 @@ public partial class NoticeBoardMainWindowGui
             leftBounds
         );
 
+        string[] playerUids = this.players?.Select(p => p.PlayerUID).ToArray() ?? Array.Empty<string>();
+        string[] playerNames = this.players?.Select(p => p.PlayerName).ToArray() ?? Array.Empty<string>();
+        int selectedOwnerIndex = this.players?.FindIndex(p => p.PlayerUID == boardPlayerId) ?? -1;
+
         composer.AddDropDown(
-            [.. players.Select(p => p.PlayerUID)],
-            [.. players.Select(p => p.PlayerName)],
-            players.FindIndex(p => p.PlayerUID == boardPlayerId),
+            playerUids,
+            playerNames,
+            selectedOwnerIndex,
             (code, selected) =>
             {
                 this.pendingOwnerUid = code;

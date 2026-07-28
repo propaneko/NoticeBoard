@@ -72,6 +72,8 @@ public partial class NoticeBoardMainWindowGui : GuiDialog
         this.noticeBoardPacket = packet;
     }
 
+    public string BoardId => this.boardId;
+
     public void UpdateMessages(List<Message> newMessages)
     {
         this.messages = newMessages;

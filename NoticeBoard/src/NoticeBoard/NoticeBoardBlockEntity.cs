@@ -196,6 +196,9 @@ public class NoticeBoardBlockEntity : BlockEntityOpenableContainer
         if (!Api.World.Side.IsServer())
             return;
 
+        if (db == null)
+            return;
+
         List<IServerPlayer> nearbyPlayers = new List<IServerPlayer>();
         foreach (IServerPlayer player in Api.World.AllOnlinePlayers)
         {
@@ -347,6 +350,7 @@ public class NoticeBoardBlockEntity : BlockEntityOpenableContainer
     public override void OnBlockRemoved()
     {
         UnregisterGameTickListener(listener);
+        listener = 0;
 
         base.OnBlockRemoved();
     }

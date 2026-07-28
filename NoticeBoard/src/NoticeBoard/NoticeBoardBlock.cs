@@ -494,6 +494,6 @@ public class NoticeBoardBlock : Block, IClaimTraverseable
 
         SpawnBlockBrokenParticles(pos, byPlayer);
 
-        world.BlockAccessor.SetBlock(0, pos);
+        base.OnBlockBroken(world, pos, byPlayer, dropQuantityMultiplier);
     }
 }

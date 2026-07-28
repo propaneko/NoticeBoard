@@ -192,46 +192,73 @@ namespace NoticeBoard.Events
 
         private void OnPlayerEditEnableParticles(IServerPlayer player, EditEnableParticles packet)
         {
+            if (!CanManageBoard(player, packet.BoardId))
+                return;
+
             db.EditEnableParticles(packet);
         }
 
         private void OnPlayerEditEnableParchment(IServerPlayer player, EditEnableParchment packet)
         {
+            if (!CanManageBoard(player, packet.BoardId))
+                return;
+
             db.EditEnableParchment(packet);
         }
 
         private void OnPlayerEditBoardOwner(IServerPlayer player, EditBoardOwner packet)
         {
+            if (!CanManageBoard(player, packet.BoardId))
+                return;
+
             db.EditBoardOwner(packet);
         }
 
         private void OnPlayerEditBoardName(IServerPlayer player, EditBoardName packet)
         {
+            if (!CanManageBoard(player, packet.BoardId))
+                return;
+
             db.EditBoardName(packet);
         }
 
         private void OnPlayerEditBoardFont(IServerPlayer player, EditBoardFont packet)
         {
+            if (!CanManageBoard(player, packet.BoardId))
+                return;
+
             db.EditBoardFont(packet);
         }
 
         private void OnPlayerEditBoardFontSize(IServerPlayer player, EditBoardFontSize packet)
         {
+            if (!CanManageBoard(player, packet.BoardId))
+                return;
+
             db.EditBoardFontSize(packet);
         }
 
         private void OnPlayerEditBoardTheme(IServerPlayer player, EditBoardTheme packet)
         {
+            if (!CanManageBoard(player, packet.BoardId))
+                return;
+
             db.EditBoardTheme(packet);
         }
 
         private void OnPlayerEditEnableProximity(IServerPlayer player, EditEnableProximity packet)
         {
+            if (!CanManageBoard(player, packet.BoardId))
+                return;
+
             db.EditEnableProximity(packet);
         }
 
         private void OnPlayerEditProximityChannel(IServerPlayer player, EditProximityChannel packet)
         {
+            if (!CanManageBoard(player, packet.BoardId))
+                return;
+
             db.EditProximityChannel(packet);
         }
 
@@ -240,6 +267,9 @@ namespace NoticeBoard.Events
             EditProximityDistance packet
         )
         {
+            if (!CanManageBoard(player, packet.BoardId))
+                return;
+
             db.EditProximityDistance(packet);
         }
 
@@ -260,14 +290,9 @@ namespace NoticeBoard.Events
                 PositionHelper.FromString(noticeBoard.Pos)
             );
 
-            db.InsertMessage(packet, player.PlayerName);
-
-            db.MarkBoardAsRead(player.PlayerUID, packet.BoardId);
-
+            bool parchmentConsumed = false;
             if (blockEntity != null && noticeBoard.EnableParchment == 1)
             {
-                bool parchmentFound = false;
-
                 for (int i = blockEntity.Inventory.Count - 1; i >= 0; i--)
                 {
                     ItemSlot slot = blockEntity.Inventory[i];
@@ -284,14 +309,18 @@ namespace NoticeBoard.Events
                         slot.TakeOut(1);
                         slot.MarkDirty();
                         blockEntity.MarkDirty(true);
-                        parchmentFound = true;
+                        parchmentConsumed = true;
                         break;
                     }
                 }
 
-                if (!parchmentFound)
+                if (!parchmentConsumed)
                     return;
             }
+
+            db.InsertMessage(packet, player.PlayerName);
+
+            db.MarkBoardAsRead(player.PlayerUID, packet.BoardId);
 
             sapi.World.PlaySoundAt(
                 new AssetLocation("noticeboard:sounds/effect/new_message.ogg"),
