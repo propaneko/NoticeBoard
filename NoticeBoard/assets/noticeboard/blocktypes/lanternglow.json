@@ -1,0 +1,21 @@
+{
+  code: "lanternglow",
+  class: "BlockMultiblock",
+  handbook: { exclude: true },
+  variantgroups: [
+    { code: "type", states: ["monolithic"] },
+    { code: "dx", states: ["n2", "n1", "0", "p1", "p2"] },
+    { code: "dy", states: ["p1", "p2"] },
+    { code: "dz", states: ["n2", "n1", "0", "p1", "p2"] }
+  ],
+  shape: { base: "game:block/basic/nothing" },
+  drawtype: "json",
+  sidesolid: { all: false },
+  sideopaque: { all: false },
+  blockmaterial: "Wood",
+  replaceable: 160,
+  resistance: 4,
+  lightAbsorption: 0,
+  lightHsv: [7, 3, 18],
+  drops: []
+}

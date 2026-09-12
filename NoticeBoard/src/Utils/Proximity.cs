@@ -6,11 +6,26 @@ namespace NoticeBoard.Utils
 {
     public static class Proximity
     {
-        public static void SendLocalChatByPlayer(IServerPlayer byPlayer, string message, int distanceToBroadcast = 100, EnumChatType chatType = EnumChatType.OthersMessage, string data = null)
+        public static void SendLocalChatByPlayer(
+            IServerPlayer byPlayer,
+            string message,
+            string proximityGroupName,
+            int distanceToBroadcast = 100,
+            EnumChatType chatType = EnumChatType.OthersMessage,
+            string data = null
+        )
         {
-            PlayerGroup proximityGroup = NoticeBoardModSystem.getSAPI().Groups.GetPlayerGroupByName(NoticeBoardModSystem.getConfig().ProximityGroupName);
-            foreach (var player in NoticeBoardModSystem.getSAPI().World.AllOnlinePlayers.Where(x =>
-                         x.Entity.Pos.AsBlockPos.ManhattenDistance(byPlayer.Entity.Pos.AsBlockPos) < distanceToBroadcast))
+            PlayerGroup proximityGroup = NoticeBoardModSystem
+                .getSAPI()
+                .Groups.GetPlayerGroupByName(proximityGroupName);
+            foreach (
+                var player in NoticeBoardModSystem
+                    .getSAPI()
+                    .World.AllOnlinePlayers.Where(x =>
+                        x.Entity.Pos.AsBlockPos.ManhattanDistance(byPlayer.Entity.Pos.AsBlockPos)
+                        < distanceToBroadcast
+                    )
+            )
             {
                 var serverPlayer = player as IServerPlayer;
 
