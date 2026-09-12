@@ -18,10 +18,13 @@ Vintage Story mod for posting and reading player notices on placeable boards. Ai
 - **Manual Pin** (per-board, default on): freeze hanging notices; new posts and edits use a look-at-cork ghost (same sheet as will hang, light green/red tint), then right-click. Left/Right arrows tilt. Up/Down arrows layer 0-3. A **move** button on the list starts that ghost without editing. Legacy Board ignores this
 - **Holder** and per-notice Paper look on the composer (nail, knife, arrow, stick, bone, spear, chisel, nails, cleaver)
 - Full-sheet **preview**: hold a rebindable hotkey (default **R**) while looking at a hanging notice, or click the paper/text on the Messages list. Same overlay either way; click again (or close the GUI) to dismiss the pinned one
+- Optional **Discord ping** per board (webhook). A new pin posts board name, who, and the immersive in-game date. Body is not sent
+- **Attach location** on compose (HUD X/Z, name, icon, color). Readers click the map ink button to add a waypoint
+- **Paper Aging** (per-board, default off): yellowing, tears, faded letters; expired sheets peel off as parchment
 - Hovering a list row dims the other hanging sheets so the matching one stands out
 - Reach for the GUI, lanterns, pin ghost, and preview is **6** blocks from the eye
-- Per-board settings: name, owner, permission mode, fonts, themes, max papers (1–50), sway, sharpness, particles, legacy baked papers
-- Optional [TheBasics](https://mods.vintagestory.at/thebasics) proximity chat when a notice is posted (not a hard dependency)
+- Per-board settings: name, owner, permission mode, Manual Pin, Discord ping, Paper Aging, fonts, themes, max papers (1–50), sway, sharpness, particles, legacy baked papers
+- Optional [TheBasics](https://mods.vintagestory.at/thebasics) (not a hard dependency): proximity chat when a notice is posted; hanging sheets, the list, parchment, and Discord use that RP nick when the mod is loaded
 - Optional **small lanterns** on the left and right posts (Ctrl + right-click; up to two; lights the board at night)
 - Locales: `en`, `es-es`, `pl`, `ru`, `uk`
 

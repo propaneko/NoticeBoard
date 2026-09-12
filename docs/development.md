@@ -53,7 +53,7 @@ NoticeBoard/
   src/NoticeBoard       Block, BlockEntity, MessageVisualData
   src/Gui               main window (Messages/Settings partials), composer, themes, ink button, procedural paper row
   src/Rendering         PaperSize, layout, Cairo text, lantern IRenderer, PaperPinController, NoticeBoardPreviewOverlay, sway
-  src/Utils             FontManager, Proximity, dates, positions
+  src/Utils             FontManager, Proximity, TheBasicsNick, DiscordNoticeBridge, WaypointPin, dates, positions
 ```
 
 ## Runtime flow

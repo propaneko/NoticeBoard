@@ -675,6 +675,3 @@ fabric.properties
 # End of https://www.toptal.com/developers/gitignore/api/csharp,visualstudio,visualstudiocode,rider
 
 docsdev
-
-# Local editor agent rules (not part of the mod)
-.cursor/
