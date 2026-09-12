@@ -6,7 +6,7 @@
     "ingredients": {
       "N": {
         "type": "item",
-        "code": "game:metalnailsandstrips-*"
+        "code": "game:metalnailsandstrips-{metal}"
       },
       "P": {
         "type": "item",
@@ -14,13 +14,13 @@
         "quantity": 6
       },
       "W": {
-        "type": "block",
-        "code": "game:planks-*",
+        "type": "item",
+        "code": "game:plank-{wood}",
         "quantity": 3
       },
       "S": {
         "type": "block",
-        "code": "game:supportbeam-*",
+        "code": "game:supportbeam-{wood}",
         "quantity": 2
       },
       "H": {
@@ -29,11 +29,29 @@
         "isTool": true
       }
     },
+    "allowedVariants": {
+      "wood": [
+        "aged", "veryaged", "birch", "oak", "maple", "pine", "acacia", "kapok",
+        "baldcypress", "larch", "redwood", "ebony", "walnut", "purpleheart"
+      ],
+      "metal": [
+        "brass", "copper", "cupronickel", "tinbronze", "bismuthbronze", "blackbronze",
+        "iron", "meteoriciron", "steel", "gold", "silver", "bismuth",
+        "molybdochalkos", "electrum"
+      ]
+    },
     "output": {
       "type": "block",
-      "code": "noticeboard:noticeboard-0-ground-north"
+      "code": "noticeboard:noticeboard-ground-north",
+      "attributes": {
+        "types": {
+          "wood": "{wood}",
+          "metal": "{metal}",
+          "messageCount": "0"
+        }
+      }
     },
-
+    "recipeGroup": 0
   },
   {
     "ingredientPattern": "N",
@@ -43,12 +61,18 @@
       "N": {
         "type": "block",
         "code": "noticeboard:noticeboard-*"
-      },
-    
+      }
     },
+    "copyAttributesFrom": "N",
     "output": {
       "type": "block",
-      "code": "noticeboard:noticeboard-0-ground-north"
-    }
+      "code": "noticeboard:noticeboard-ground-north",
+      "attributes": {
+        "types": {
+          "messageCount": "0"
+        }
+      }
+    },
+    "recipeGroup": 1
   }
 ]

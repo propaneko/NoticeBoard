@@ -1,0 +1,105 @@
+{
+	"textureWidth": 16,
+	"textureHeight": 16,
+	"elements": [
+		{
+			"name": "seat",
+			"from": [0, 0, -3],
+			"to": [2, 2, 0],
+			"faces": {
+				"north": { "texture": "#aged-h", "uv": [0, 0, 2, 2] },
+				"east": { "texture": "#aged-h", "uv": [0, 0, 3, 2] },
+				"south": { "texture": "#aged-h", "uv": [0, 0, 2, 2] },
+				"west": { "texture": "#aged-h", "uv": [0, 0, 3, 2] },
+				"up": { "texture": "#aged-h", "uv": [0, 0, 2, 3] },
+				"down": { "texture": "#aged-h", "uv": [0, 0, 2, 3] }
+			},
+			"children": [
+				{
+					"name": "peg",
+					"from": [0, 0, 0],
+					"to": [2, 2, 14],
+					"faces": {
+						"north": { "texture": "#aged-h", "uv": [0, 0, 2, 2] },
+						"east": { "texture": "#aged-h", "uv": [0, 0, 14, 2] },
+						"south": { "texture": "#aged-h", "uv": [0, 0, 2, 2] },
+						"west": { "texture": "#aged-h", "uv": [0, 0, 14, 2] },
+						"up": { "texture": "#aged-h", "uv": [0, 0, 2, 14] },
+						"down": { "texture": "#aged-h", "uv": [0, 0, 2, 14] }
+					},
+					"children": [
+						{
+							"name": "strut",
+							"from": [0.25, -12, 8.5],
+							"to": [1.75, 1.5, 10],
+							"rotationOrigin": [1, 0, 9.25],
+							"rotationX": 50,
+							"faces": {
+								"north": { "texture": "#agedbark", "uv": [0, 0, 1.5, 13.5] },
+								"east": { "texture": "#agedbark", "uv": [0, 0, 1.5, 13.5] },
+								"south": { "texture": "#agedbark", "uv": [0, 0, 1.5, 13.5] },
+								"west": { "texture": "#agedbark", "uv": [0, 0, 1.5, 13.5] },
+								"up": { "texture": "#agedbark", "uv": [0, 0, 1.5, 1.5] },
+								"down": { "texture": "#agedbark", "uv": [0, 0, 1.5, 1.5] }
+							},
+							"children": [
+								{
+									"name": "strutCapBoard",
+									"from": [-0.2, 3.4, -0.2],
+									"to": [1.7, 5.0, 1.7],
+									"faces": {
+										"north": { "texture": "#brass", "uv": [0, 0, 1.9, 1.6] },
+										"east": { "texture": "#brass", "uv": [0, 0, 1.9, 1.6] },
+										"south": { "texture": "#brass", "uv": [0, 0, 1.9, 1.6] },
+										"west": { "texture": "#brass", "uv": [0, 0, 1.9, 1.6] },
+										"up": { "texture": "#brass", "uv": [0, 0, 1.9, 1.9] },
+										"down": { "texture": "#brass", "uv": [0, 0, 1.9, 1.9] }
+									}
+								},
+								{
+									"name": "strutCapPeg",
+									"from": [-0.15, 11.1, -0.15],
+									"to": [1.65, 13.6, 1.65],
+									"faces": {
+										"north": { "texture": "#brass", "uv": [0, 0, 1.8, 2.5] },
+										"east": { "texture": "#brass", "uv": [0, 0, 1.8, 2.5] },
+										"south": { "texture": "#brass", "uv": [0, 0, 1.8, 2.5] },
+										"west": { "texture": "#brass", "uv": [0, 0, 1.8, 2.5] },
+										"up": { "texture": "#brass", "uv": [0, 0, 1.8, 1.8] },
+										"down": { "texture": "#brass", "uv": [0, 0, 1.8, 1.8] }
+									}
+								}
+							]
+						},
+						{
+							"name": "strutPlateBoard",
+							"from": [-0.2, -6.3, 2.85],
+							"to": [2.2, -3.7, 3.3],
+							"faces": {
+								"north": { "texture": "#brass", "uv": [0, 0, 2.4, 2.6] },
+								"east": { "texture": "#brass", "uv": [0, 0, 0.45, 2.6] },
+								"south": { "texture": "#brass", "uv": [0, 0, 2.4, 2.6] },
+								"west": { "texture": "#brass", "uv": [0, 0, 0.45, 2.6] },
+								"up": { "texture": "#brass", "uv": [0, 0, 2.4, 0.45] },
+								"down": { "texture": "#brass", "uv": [0, 0, 2.4, 0.45] }
+							}
+						},
+						{
+							"name": "strutPlatePeg",
+							"from": [-0.2, -0.45, 7.4],
+							"to": [2.2, 0.05, 10.6],
+							"faces": {
+								"north": { "texture": "#brass", "uv": [0, 0, 2.4, 0.5] },
+								"east": { "texture": "#brass", "uv": [0, 0, 3.2, 0.5] },
+								"south": { "texture": "#brass", "uv": [0, 0, 2.4, 0.5] },
+								"west": { "texture": "#brass", "uv": [0, 0, 3.2, 0.5] },
+								"up": { "texture": "#brass", "uv": [0, 0, 2.4, 3.2] },
+								"down": { "texture": "#brass", "uv": [0, 0, 2.4, 3.2] }
+							}
+						}
+					]
+				}
+			]
+		}
+	]
+}
