@@ -1,0 +1,5 @@
+<Project>
+  <PropertyGroup>
+    <VINTAGE_STORY Condition="'$(VINTAGE_STORY)' == ''">/opt/vintagestory</VINTAGE_STORY>
+  </PropertyGroup>
+</Project>

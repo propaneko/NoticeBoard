@@ -1,11 +1,13 @@
-﻿using Microsoft.Data.Sqlite;
-using NoticeBoard;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using Microsoft.Data.Sqlite;
+using NoticeBoard;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 
 namespace NoticeBoard.Database;
+
 public class SQLiteDatabase
 {
     private string dbFilePath;
@@ -13,22 +15,36 @@ public class SQLiteDatabase
 
     public SQLiteDatabase(string databaseName = "noticeboard.db")
     {
-        string modConfigDir = Path.Combine(GamePaths.DataPath, "ModData/noticeboard");
+        var api =
+            NoticeBoardModSystem.getSAPI()
+            ?? throw new InvalidOperationException(
+                "[NoticeBoard] Cannot create SQLiteDatabase before server API is available."
+            );
+
+        string worldId = api.World?.SavegameIdentifier;
+
+        if (string.IsNullOrEmpty(worldId))
+        {
+            worldId = "global";
+        }
+
+        string modConfigDir = Path.Combine(GamePaths.DataPath, "ModData", worldId, "noticeboard");
         if (!Directory.Exists(modConfigDir))
         {
             Directory.CreateDirectory(modConfigDir);
         }
         this.dbFilePath = Path.Combine(modConfigDir, databaseName);
-        NoticeBoardModSystem.getSAPI().Logger.Debug("[noticeboard] path db is " + this.dbFilePath);
+        api.Logger.Debug("[noticeboard] path db is " + this.dbFilePath);
         this.connection = new SqliteConnection("Data Source=" + this.dbFilePath + ";");
         this.TryOpenConnection();
-        this.MigrateDatabase();
         this.InitializeDatabase();
     }
+
     public SqliteConnection getSQLiteConnection()
     {
         return connection;
     }
+
     public string getSQLiteDBPath()
     {
         return dbFilePath;
@@ -37,198 +53,216 @@ public class SQLiteDatabase
     private void InitializeDatabase()
     {
         TryOpenConnection();
-        string createTableQuery = @"
+        string createTableQuery =
+            @"
+            PRAGMA foreign_keys = ON;
+
             CREATE TABLE IF NOT EXISTS players (
                 playerId TEXT NOT NULL PRIMARY KEY,
-                playerName TEXT,
-                UNIQUE(playerId)
+                playerName TEXT NOT NULL,
+                displayName TEXT,
+                createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
             );
 
             CREATE TABLE IF NOT EXISTS noticeBoard (
                 boardId TEXT NOT NULL PRIMARY KEY,
-                playerId TEXT NOT NULL,
+                boardName TEXT DEFAULT 'Notice Board',
+                boardFont TEXT DEFAULT 'Ari-W9500',
+                boardFontSize REAL DEFAULT '16.0',
+                boardTheme TEXT DEFAULT 'Classic Aged',
+
+                ownerPlayerId TEXT NOT NULL,
                 pos TEXT,
-                isLocked INTEGER,
-                UNIQUE(boardId),
-                FOREIGN KEY (playerId) REFERENCES players(playerId)
+                permissionMode INTEGER DEFAULT 0,
+                enableParticles INTEGER DEFAULT 1,
+                enableParchment INTEGER DEFAULT 1,
+                enableProximity INTEGER DEFAULT 0,
+                proximityChannel TEXT DEFAULT 'Proximity',
+                proximityDistance INTEGER DEFAULT 100,
+                maxPapersOnBoard INTEGER DEFAULT 20,
+                enableLegacyBoard INTEGER DEFAULT 0,
+                textSharpness INTEGER DEFAULT 2,
+                enablePaperSway INTEGER DEFAULT 1,
+                swayStrength INTEGER DEFAULT 50,
+                enableManualPin INTEGER DEFAULT 1,
+                enableDiscord INTEGER DEFAULT 0,
+                discordWebhook TEXT DEFAULT '',
+                corkAttachment TEXT,
+                createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (ownerPlayerId) REFERENCES players(playerId)
             );
 
             CREATE TABLE IF NOT EXISTS messages (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                boardId TEXT NOT NULL,
+                senderPlayerId TEXT NOT NULL,
                 message TEXT NOT NULL,
+                totalHours REAL NOT NULL,
+                isAnonymous INTEGER DEFAULT 0,
+                holder INTEGER DEFAULT 0,
+                paperTheme TEXT DEFAULT '',
+                paperSeed INTEGER DEFAULT 0,
+                createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+                FOREIGN KEY (boardId) REFERENCES noticeBoard(boardId),
+                FOREIGN KEY (senderPlayerId) REFERENCES players(playerId)
+            );
+
+            CREATE TABLE IF NOT EXISTS playerBoardReads (
                 playerId TEXT NOT NULL,
                 boardId TEXT NOT NULL,
+                lastReadMessageId INTEGER,
+                lastReadAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+            
+                PRIMARY KEY (playerId, boardId),
                 FOREIGN KEY (playerId) REFERENCES players(playerId),
                 FOREIGN KEY (boardId) REFERENCES noticeBoard(boardId)
             );
+
+            CREATE INDEX IF NOT EXISTS idx_messages_boardId ON messages(boardId);
+            CREATE INDEX IF NOT EXISTS idx_messages_board_created ON messages(boardId, createdAt DESC);
+            CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(senderPlayerId);
+
+            CREATE INDEX IF NOT EXISTS idx_noticeBoard_owner ON noticeBoard(ownerPlayerId);
+
+            CREATE INDEX IF NOT EXISTS idx_playerBoardReads_player ON playerBoardReads(playerId);
+            CREATE INDEX IF NOT EXISTS idx_playerBoardReads_board ON playerBoardReads(boardId);
         ";
 
-        try
+        using (var command = new SqliteCommand(createTableQuery, connection))
         {
-            using (var command = new SqliteCommand(createTableQuery, connection))
-            {
-                command.ExecuteNonQuery();
-            }
+            command.ExecuteNonQuery();
         }
-        catch (Exception e)
-        {
-            throw;
-        }
-      
+
+        MigrateNoticeBoardSchema();
+        MigrateMessagesSchema();
+        MigratePlayersSchema();
     }
 
-    private void MigrateDatabase()
+    private void MigrateNoticeBoardSchema()
     {
-        TryOpenConnection();
-
-        string createSchemaVersionTable = @"
-        CREATE TABLE IF NOT EXISTS schema_version (
-            id INTEGER PRIMARY KEY,
-            version INTEGER NOT NULL,
-            migration_date TEXT NOT NULL
-        );
-    ";
-        using (var command = new SqliteCommand(createSchemaVersionTable, connection))
-        {
-            command.ExecuteNonQuery();
-        }
-
-        bool dbWasInitialised = TableExists("players") && TableExists("noticeBoard") && TableExists("messages");
-        if (!dbWasInitialised)
-        {
-            NoticeBoardModSystem.getSAPI().Logger.Debug("[noticeboard] Database file exists but core tables are missing – skipping migration.");
-            using (var cmd = new SqliteCommand(
-                       "INSERT OR IGNORE INTO schema_version (id, version, migration_date) VALUES (1, 1, @date);", connection))
-            {
-                cmd.Parameters.AddWithValue("@date", DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"));
-                cmd.ExecuteNonQuery();
-            }
+        HashSet<string> columns = GetTableColumns("noticeBoard");
+        if (columns.Count == 0)
             return;
+
+        EnsureColumn(columns, "noticeBoard", "boardName", "TEXT DEFAULT 'Notice Board'");
+        EnsureColumn(columns, "noticeBoard", "boardFont", "TEXT DEFAULT 'Ari-W9500'");
+        EnsureColumn(columns, "noticeBoard", "boardFontSize", "REAL DEFAULT 16.0");
+        EnsureColumn(columns, "noticeBoard", "boardTheme", "TEXT DEFAULT 'Classic Aged'");
+        EnsureColumn(columns, "noticeBoard", "pos", "TEXT");
+        EnsureColumn(columns, "noticeBoard", "enableParticles", "INTEGER DEFAULT 1");
+        EnsureColumn(columns, "noticeBoard", "enableParchment", "INTEGER DEFAULT 1");
+        EnsureColumn(columns, "noticeBoard", "enableProximity", "INTEGER DEFAULT 0");
+        EnsureColumn(columns, "noticeBoard", "proximityChannel", "TEXT DEFAULT 'Proximity'");
+        EnsureColumn(columns, "noticeBoard", "proximityDistance", "INTEGER DEFAULT 100");
+        EnsureColumn(columns, "noticeBoard", "maxPapersOnBoard", "INTEGER DEFAULT 20");
+
+        if (columns.Contains("enableCustomPaperTextures") && !columns.Contains("enableLegacyBoard"))
+        {
+            ExecuteNonQuery(
+                "ALTER TABLE noticeBoard RENAME COLUMN enableCustomPaperTextures TO enableLegacyBoard"
+            );
+            columns.Remove("enableCustomPaperTextures");
+            columns.Add("enableLegacyBoard");
         }
 
-        int currentVersion = 0;
-        string checkVersionQuery = "SELECT version FROM schema_version WHERE id = 1;";
-        using (var command = new SqliteCommand(checkVersionQuery, connection))
+        EnsureColumn(columns, "noticeBoard", "enableLegacyBoard", "INTEGER DEFAULT 0");
+        EnsureColumn(columns, "noticeBoard", "textSharpness", "INTEGER DEFAULT 2");
+        EnsureColumn(columns, "noticeBoard", "enablePaperSway", "INTEGER DEFAULT 1");
+        EnsureColumn(columns, "noticeBoard", "swayStrength", "INTEGER DEFAULT 50");
+        EnsureColumn(columns, "noticeBoard", "enableManualPin", "INTEGER DEFAULT 1");
+        EnsureColumn(columns, "noticeBoard", "enableNoticeAging", "INTEGER DEFAULT 0");
+        EnsureColumn(columns, "noticeBoard", "noticeAgingDays", "INTEGER DEFAULT 9");
+        EnsureColumn(columns, "noticeBoard", "corkAttachment", "TEXT");
+        EnsureColumn(columns, "noticeBoard", "enableDiscord", "INTEGER DEFAULT 0");
+        EnsureColumn(columns, "noticeBoard", "discordWebhook", "TEXT DEFAULT ''");
+        EnsureColumn(columns, "noticeBoard", "createdAt", "DATETIME DEFAULT CURRENT_TIMESTAMP");
+
+        if (!columns.Contains("permissionMode"))
         {
-            var result = command.ExecuteScalar();
-            if (result != null && result != DBNull.Value)
+            ExecuteNonQuery(
+                "ALTER TABLE noticeBoard ADD COLUMN permissionMode INTEGER DEFAULT 0"
+            );
+            columns.Add("permissionMode");
+
+            if (columns.Contains("isLocked"))
             {
-                currentVersion = Convert.ToInt32(result);
+                // Legacy isLocked (0/1) → BoardPermissionMode.Default (0) / Locked (2)
+                ExecuteNonQuery(
+                    @"UPDATE noticeBoard
+                      SET permissionMode = CASE WHEN isLocked = 1 THEN 2 ELSE 0 END"
+                );
             }
+
+            NoticeBoardModSystem
+                .getSAPI()
+                ?.Logger.Notification(
+                    "[NoticeBoard] Migrated noticeBoard schema: added permissionMode column."
+                );
         }
-
-        const int targetVersion = 1; 
-        if (currentVersion >= targetVersion)
-        {
-            NoticeBoardModSystem.getSAPI().Logger.Debug("[noticeboard] Database is already at version {0}, no migration needed.", currentVersion);
-            return;
-        }
-
-        NoticeBoardModSystem.getSAPI().Logger.Debug("[noticeboard] Starting database migration to version {0}.", targetVersion);
-
-        string createTempTablesQuery = @"
-        CREATE TABLE temp_players (
-            playerId TEXT NOT NULL PRIMARY KEY,
-            playerName TEXT,
-            UNIQUE(playerId)
-        );
-        CREATE TABLE temp_noticeBoard (
-            boardId TEXT NOT NULL PRIMARY KEY,
-            playerId TEXT NOT NULL,
-            pos TEXT,
-            isLocked INTEGER,
-            UNIQUE(boardId),
-            FOREIGN KEY (playerId) REFERENCES temp_players(playerId)
-        );
-        CREATE TABLE temp_messages (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            message TEXT NOT NULL,
-            playerId TEXT NOT NULL,
-            boardId TEXT NOT NULL,
-            FOREIGN KEY (playerId) REFERENCES temp_players(playerId),
-            FOREIGN KEY (boardId) REFERENCES temp_noticeBoard(boardId)
-        );
-    ";
-        using (var command = new SqliteCommand(createTempTablesQuery, connection))
-        {
-            command.ExecuteNonQuery();
-        }
-
-        string copyPlayersQuery = "INSERT INTO temp_players (playerId, playerName) SELECT playerId, playerName FROM players;";
-        using (var command = new SqliteCommand(copyPlayersQuery, connection))
-        {
-            command.ExecuteNonQuery();
-        }
-
-        string insertUnknownPlayer = "INSERT OR IGNORE INTO temp_players (playerId, playerName) VALUES ('unknown', 'Unknown Player');";
-        using (var command = new SqliteCommand(insertUnknownPlayer, connection))
-        {
-            command.ExecuteNonQuery();
-        }
-
-        string copyNoticeBoardQuery = "INSERT INTO temp_noticeBoard (boardId, playerId, pos, isLocked) SELECT boardId, 'unknown', pos, 0 FROM noticeBoard;";
-        using (var command = new SqliteCommand(copyNoticeBoardQuery, connection))
-        {
-            command.ExecuteNonQuery();
-        }
-
-        string copyMessagesQuery = @"
-        INSERT INTO temp_messages (id, message, playerId, boardId)
-        SELECT m.id, m.message, m.playerId, m.boardId
-        FROM messages m
-        WHERE EXISTS (SELECT 1 FROM temp_players p WHERE p.playerId = m.playerId)
-        AND EXISTS (SELECT 1 FROM temp_noticeBoard nb WHERE nb.boardId = m.boardId);
-    ";
-        using (var command = new SqliteCommand(copyMessagesQuery, connection))
-        {
-            command.ExecuteNonQuery();
-        }
-
-        string dropOldTablesQuery = @"
-        DROP TABLE IF EXISTS messages;
-        DROP TABLE IF EXISTS noticeBoard;
-        DROP TABLE IF EXISTS players;
-    ";
-        using (var command = new SqliteCommand(dropOldTablesQuery, connection))
-        {
-            command.ExecuteNonQuery();
-        }
-
-        string renameTablesQuery = @"
-        ALTER TABLE temp_players RENAME TO players;
-        ALTER TABLE temp_noticeBoard RENAME TO noticeBoard;
-        ALTER TABLE temp_messages RENAME TO messages;
-    ";
-        using (var command = new SqliteCommand(renameTablesQuery, connection))
-        {
-            command.ExecuteNonQuery();
-        }
-
-        string updateVersionQuery = @"
-        INSERT OR REPLACE INTO schema_version (id, version, migration_date)
-        VALUES (1, @version, @date);
-    ";
-        using (var command = new SqliteCommand(updateVersionQuery, connection))
-        {
-            command.Parameters.AddWithValue("@version", targetVersion);
-            command.Parameters.AddWithValue("@date", DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"));
-            command.ExecuteNonQuery();
-        }
-
-        using (var command = new SqliteCommand("PRAGMA foreign_keys = ON;", connection))
-        {
-            command.ExecuteNonQuery();
-        }
-
-        NoticeBoardModSystem.getSAPI().Logger.Debug("[noticeboard] Database migration to version {0} completed successfully.", targetVersion);
     }
 
-    private bool TableExists(string tableName)
+    private void MigratePlayersSchema()
     {
-        const string sql = "SELECT name FROM sqlite_master WHERE type='table' AND name=@name;";
-        using var cmd = new SqliteCommand(sql, connection);
-        cmd.Parameters.AddWithValue("@name", tableName);
-        return cmd.ExecuteScalar() != null;
+        HashSet<string> columns = GetTableColumns("players");
+        if (columns.Count == 0)
+            return;
+        EnsureColumn(columns, "players", "displayName", "TEXT");
+    }
+
+    private void MigrateMessagesSchema()
+    {
+        HashSet<string> columns = GetTableColumns("messages");
+        if (columns.Count == 0)
+            return;
+
+        EnsureColumn(columns, "messages", "holder", "INTEGER DEFAULT 0");
+        EnsureColumn(columns, "messages", "paperTheme", "TEXT DEFAULT ''");
+        EnsureColumn(columns, "messages", "paperOverlay", "INTEGER DEFAULT 0");
+        EnsureColumn(columns, "messages", "pinX", "REAL");
+        EnsureColumn(columns, "messages", "pinY", "REAL");
+        EnsureColumn(columns, "messages", "pinRotZ", "REAL");
+        EnsureColumn(columns, "messages", "pinLayer", "INTEGER DEFAULT 0");
+        EnsureColumn(columns, "messages", "waypointX", "REAL");
+        EnsureColumn(columns, "messages", "waypointZ", "REAL");
+        EnsureColumn(columns, "messages", "paperSeed", "INTEGER DEFAULT 0");
+        ExecuteNonQuery("UPDATE messages SET paperSeed = id WHERE paperSeed = 0");
+        EnsureColumn(columns, "messages", "waypointTitle", "TEXT DEFAULT ''");
+        EnsureColumn(columns, "messages", "waypointIcon", "TEXT DEFAULT 'circle'");
+        EnsureColumn(columns, "messages", "waypointColor", "TEXT DEFAULT 'steelblue'");
+    }
+
+    private HashSet<string> GetTableColumns(string tableName)
+    {
+        var columns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        using var command = new SqliteCommand($"PRAGMA table_info({tableName})", connection);
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            columns.Add(reader.GetString(1));
+        }
+        return columns;
+    }
+
+    private void EnsureColumn(
+        HashSet<string> columns,
+        string tableName,
+        string columnName,
+        string columnDefinition
+    )
+    {
+        if (columns.Contains(columnName))
+            return;
+
+        ExecuteNonQuery($"ALTER TABLE {tableName} ADD COLUMN {columnName} {columnDefinition}");
+        columns.Add(columnName);
+    }
+
+    private void ExecuteNonQuery(string sql)
+    {
+        using var command = new SqliteCommand(sql, connection);
+        command.ExecuteNonQuery();
     }
 
     public void TryOpenConnection()
@@ -249,6 +283,7 @@ public class SQLiteDatabase
         {
             connection.Close();
             connection.Dispose();
+            connection = null;
         }
     }
 }
