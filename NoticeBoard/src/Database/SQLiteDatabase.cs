@@ -85,6 +85,9 @@ public class SQLiteDatabase
                 enablePaperSway INTEGER DEFAULT 1,
                 swayStrength INTEGER DEFAULT 50,
                 enableManualPin INTEGER DEFAULT 1,
+                enableNoticeAging INTEGER DEFAULT 0,
+                noticeAgingDays INTEGER DEFAULT 9,
+                enableAgingAtHours REAL DEFAULT 0,
                 enableDiscord INTEGER DEFAULT 0,
                 discordWebhook TEXT DEFAULT '',
                 corkAttachment TEXT,
@@ -102,6 +105,7 @@ public class SQLiteDatabase
                 holder INTEGER DEFAULT 0,
                 paperTheme TEXT DEFAULT '',
                 paperSeed INTEGER DEFAULT 0,
+                pendingDrop INTEGER DEFAULT 0,
                 createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
 
@@ -120,6 +124,10 @@ public class SQLiteDatabase
                 FOREIGN KEY (boardId) REFERENCES noticeBoard(boardId)
             );
 
+        ";
+
+        string createIndexQuery =
+            @"
             CREATE INDEX IF NOT EXISTS idx_messages_boardId ON messages(boardId);
             CREATE INDEX IF NOT EXISTS idx_messages_board_created ON messages(boardId, createdAt DESC);
             CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(senderPlayerId);
@@ -135,9 +143,67 @@ public class SQLiteDatabase
             command.ExecuteNonQuery();
         }
 
+        UpgradeLegacySchema();
         MigrateNoticeBoardSchema();
         MigrateMessagesSchema();
         MigratePlayersSchema();
+
+        try
+        {
+            ExecuteNonQuery(createIndexQuery);
+        }
+        catch (Exception e)
+        {
+            NoticeBoardModSystem
+                .getSAPI()
+                ?.Logger.Error($"[NoticeBoard] Could not create indexes: {e.Message}");
+        }
+    }
+
+    private void UpgradeLegacySchema()
+    {
+        RenameColumnIfNeeded("noticeBoard", "playerId", "ownerPlayerId");
+        RenameColumnIfNeeded("messages", "playerId", "senderPlayerId");
+
+        HashSet<string> messages = GetTableColumns("messages");
+        if (messages.Count > 0)
+        {
+            EnsureColumn(messages, "messages", "senderPlayerId", "TEXT DEFAULT ''");
+            EnsureColumn(messages, "messages", "totalHours", "REAL DEFAULT 0");
+            EnsureColumn(messages, "messages", "isAnonymous", "INTEGER DEFAULT 0");
+            EnsureColumn(messages, "messages", "createdAt", "DATETIME DEFAULT 0");
+            EnsureColumn(messages, "messages", "updatedAt", "DATETIME DEFAULT 0");
+            ExecuteNonQuery(
+                "UPDATE messages SET createdAt = CURRENT_TIMESTAMP WHERE createdAt IS NULL OR createdAt = 0"
+            );
+            ExecuteNonQuery(
+                "UPDATE messages SET updatedAt = CURRENT_TIMESTAMP WHERE updatedAt IS NULL OR updatedAt = 0"
+            );
+        }
+
+        HashSet<string> boards = GetTableColumns("noticeBoard");
+        if (boards.Count > 0)
+        {
+            EnsureColumn(boards, "noticeBoard", "ownerPlayerId", "TEXT DEFAULT ''");
+            EnsureColumn(boards, "noticeBoard", "createdAt", "DATETIME DEFAULT 0");
+            ExecuteNonQuery(
+                "UPDATE noticeBoard SET createdAt = CURRENT_TIMESTAMP WHERE createdAt IS NULL OR createdAt = 0"
+            );
+        }
+    }
+
+    private void RenameColumnIfNeeded(string tableName, string legacyColumn, string currentColumn)
+    {
+        HashSet<string> columns = GetTableColumns(tableName);
+        if (columns.Count == 0 || !columns.Contains(legacyColumn) || columns.Contains(currentColumn))
+            return;
+
+        ExecuteNonQuery($"ALTER TABLE {tableName} RENAME COLUMN {legacyColumn} TO {currentColumn}");
+        NoticeBoardModSystem
+            .getSAPI()
+            ?.Logger.Notification(
+                $"[NoticeBoard] Migrated {tableName} schema: renamed {legacyColumn} to {currentColumn}."
+            );
     }
 
     private void MigrateNoticeBoardSchema()
@@ -171,13 +237,18 @@ public class SQLiteDatabase
         EnsureColumn(columns, "noticeBoard", "textSharpness", "INTEGER DEFAULT 2");
         EnsureColumn(columns, "noticeBoard", "enablePaperSway", "INTEGER DEFAULT 1");
         EnsureColumn(columns, "noticeBoard", "swayStrength", "INTEGER DEFAULT 50");
-        EnsureColumn(columns, "noticeBoard", "enableManualPin", "INTEGER DEFAULT 1");
+
+        if (!columns.Contains("enableManualPin"))
+        {
+            EnsureColumn(columns, "noticeBoard", "enableManualPin", "INTEGER DEFAULT 1");
+            ExecuteNonQuery("UPDATE noticeBoard SET enableManualPin = 1");
+        }
         EnsureColumn(columns, "noticeBoard", "enableNoticeAging", "INTEGER DEFAULT 0");
         EnsureColumn(columns, "noticeBoard", "noticeAgingDays", "INTEGER DEFAULT 9");
+        EnsureColumn(columns, "noticeBoard", "enableAgingAtHours", "REAL DEFAULT 0");
         EnsureColumn(columns, "noticeBoard", "corkAttachment", "TEXT");
         EnsureColumn(columns, "noticeBoard", "enableDiscord", "INTEGER DEFAULT 0");
         EnsureColumn(columns, "noticeBoard", "discordWebhook", "TEXT DEFAULT ''");
-        EnsureColumn(columns, "noticeBoard", "createdAt", "DATETIME DEFAULT CURRENT_TIMESTAMP");
 
         if (!columns.Contains("permissionMode"))
         {
@@ -231,6 +302,7 @@ public class SQLiteDatabase
         EnsureColumn(columns, "messages", "waypointTitle", "TEXT DEFAULT ''");
         EnsureColumn(columns, "messages", "waypointIcon", "TEXT DEFAULT 'circle'");
         EnsureColumn(columns, "messages", "waypointColor", "TEXT DEFAULT 'steelblue'");
+        EnsureColumn(columns, "messages", "pendingDrop", "INTEGER DEFAULT 0");
     }
 
     private HashSet<string> GetTableColumns(string tableName)

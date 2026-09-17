@@ -85,6 +85,9 @@ public static class NoticeBoardPaperLayout
     private const float SheetTiltMinDeg = 2f;
     public const float SheetTiltMaxDeg = 12f;
 
+    public static float ClampTiltDeg(float deg) =>
+        float.IsFinite(deg) ? GameMath.Clamp(deg, -SheetTiltMaxDeg, SheetTiltMaxDeg) : 0f;
+
     // Horizontal bounds are the cork panel area plus the very inner edge of the trim: based on
     // the panel extents from the shape, shrunk by the paper-sheet footprint around the nail and
     // the maximum stray lean added by Tilt(). A sheet's width does not vary with its height, so

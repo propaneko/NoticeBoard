@@ -19,8 +19,12 @@ public partial class NoticeBoardMainWindowGui
 {
         public bool OpenTextInput(string mode, int messageId, string currentText, int isAnonymous = 0, int holder = 0, string paperTheme = "", bool hasWaypoint = false, float waypointX = 0, float waypointZ = 0, string waypointTitle = "", string waypointIcon = "", string waypointColor = "")
         {
-            if (this.textInputGui != null && this.textInputGui.IsOpened())
+            if (this.textInputGui != null)
+            {
                 this.textInputGui.TryClose();
+                this.textInputGui.Dispose();
+                this.textInputGui = null;
+            }
 
             this.textInputGui = new NoticeBoardTextInputWindowGui(
                 this.capi,
@@ -59,12 +63,13 @@ public partial class NoticeBoardMainWindowGui
 
         ItemSlot validSlot = null;
 
-        foreach (ItemSlot slot in blockEntity.Inventory)
+        for (int i = 0; i < 4; i++)
         {
-            if (!slot.Empty && (slot.Itemstack.Collectible.Code.Path.StartsWith("paper-parchment") || slot.Itemstack.Collectible.Code.Path == "papyrus-paper"))
+            ItemSlot slot = blockEntity.Inventory[i];
+            if (!slot.Empty && NoticeBoard.Utils.NoticeParchment.IsCostPaper(slot.Itemstack))
             {
                 validSlot = slot;
-                break; 
+                break;
             }
         }
 
@@ -476,7 +481,7 @@ public partial class NoticeBoardMainWindowGui
                 scrollArea.Add(new GuiElementRichtext(this.capi, dateVtml, dateBounds), -1);
                 scrollArea.Add(new GuiElementRichtext(this.capi, bodyVtml, bodyBounds), -1);
 
-                bool isSender = (message.PlayerId == capi.World.Player.PlayerUID);
+                bool isSender = message.IsMine;
                 bool canEdit = isOwner
                     || this.permissionMode == (int)BoardPermissionMode.All
                     || (this.permissionMode == (int)BoardPermissionMode.Default && isSender);

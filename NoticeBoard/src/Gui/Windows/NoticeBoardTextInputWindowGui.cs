@@ -329,8 +329,8 @@ namespace NoticeBoard.src.Gui.Windows
                 "Item",
                 () =>
                     InsertFormatTag(
-                        "<itemstack floattype=\"left\" type=\"block\" code=\"packeddirt\" rsize=\"1\" offx=\"0\" offy=\"0\">",
-                        "</itemstack>",
+                        "<itemstack floattype=\"left\" type=\"block\" code=\"packeddirt\" rsize=\"1\" offx=\"0\" offy=\"0\">dirt</itemstack>",
+                        "",
                         dialogComposer
                     ),
                 itemBtn,
@@ -729,9 +729,9 @@ namespace NoticeBoard.src.Gui.Windows
 
         private void OnTextChanged(string text, GuiComposer dialogComposer)
         {
-            if (text.Length > 10000)
+            if (text.Length > PaperSize.MaxComposeChars)
             {
-                text = text.Substring(0, 10000);
+                text = text.Substring(0, PaperSize.MaxComposeChars);
                 dialogComposer.GetTextArea("messageInput").SetValue(text, true);
             }
 
@@ -1115,6 +1115,19 @@ namespace NoticeBoard.src.Gui.Windows
         }
 
         private void OnTitleBarClose() => TryClose();
+
+        private bool resourcesReleased;
+
+        public override void Dispose()
+        {
+            if (resourcesReleased)
+                return;
+
+            resourcesReleased = true;
+            base.Dispose();
+        }
+
+        public override bool UnregisterOnClose => true;
 
         public override double DrawOrder => 0.3;
 

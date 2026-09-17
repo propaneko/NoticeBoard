@@ -16,12 +16,19 @@ public class NoticeBoardPreviewOverlay : HudElement
 
     public static NoticeBoardPreviewOverlay Instance { get; private set; }
 
+    private const float FadeInSeconds = 0.28f;
+    private const float FadeOutSeconds = 0.22f;
+    private const float DimAlpha = 0.55f;
+    private const float GrowFrom = 0.94f;
+
     private LoadedTexture sheetTexture;
     private LoadedTexture dimTexture;
     private BlockPos cachedPos;
     private int cachedMessageId = -1;
     private string cachedStamp;
     private int cachedSuperSample;
+    private float transition;
+    private SheetRequest? current;
 
     private MessageVisualData pinnedData;
     private string pinnedFont;
@@ -92,7 +99,6 @@ public class NoticeBoardPreviewOverlay : HudElement
             capi.Event.MouseDown -= OnPinnedMouseDown;
             mouseHooked = false;
         }
-        ReleaseSheet();
     }
 
     private void OnPinnedMouseDown(MouseEvent args)
@@ -115,39 +121,67 @@ public class NoticeBoardPreviewOverlay : HudElement
     {
         base.OnRenderGUI(deltaTime);
 
+        bool shown = TryResolveRequest(out SheetRequest request);
+        if (shown)
+            current = request;
+
+        if (current.HasValue && (shown || transition > 0f))
+        {
+            float step = Math.Max(0f, deltaTime);
+            transition = Math.Clamp(
+                transition + (shown ? step / FadeInSeconds : -step / FadeOutSeconds),
+                0f,
+                1f);
+
+            if (transition > 0f)
+            {
+                DrawSheet(current.Value, EaseOutCubic(transition));
+                return;
+            }
+        }
+
+        transition = 0f;
+        current = null;
+        ReleaseSheet();
+    }
+
+    private static float EaseOutCubic(float t)
+    {
+        float inverted = 1f - t;
+        return 1f - inverted * inverted * inverted;
+    }
+
+    private bool TryResolveRequest(out SheetRequest request)
+    {
+        request = default;
+
         if (pinnedData != null)
         {
-            DrawSheet(
-                pinnedData, pinnedFont, pinnedTheme, pinnedFontSize, pinnedMessageId,
-                worldPos: null, z: 50f, pinnedAging, pinnedLifeDays);
-            return;
+            request = new SheetRequest(
+                pinnedData,
+                pinnedFont,
+                pinnedTheme,
+                pinnedFontSize,
+                pinnedMessageId,
+                null,
+                pinnedAging,
+                pinnedLifeDays);
+            return true;
         }
 
         if (!IsHotkeyHeld())
-        {
-            ReleaseSheet();
-            return;
-        }
+            return false;
 
         BlockSelection sel = capi.World.Player?.CurrentBlockSelection;
         NoticeBoardBlockEntity be = sel != null ? capi.GetNoticeBoardEntity(sel.Position) : null;
         if (be == null && !PaperPinController.TryTraceBoard(capi.World, capi.World.Player, out sel, out be))
-        {
-            ReleaseSheet();
-            return;
-        }
+            return false;
 
         if (be == null || sel == null)
-        {
-            ReleaseSheet();
-            return;
-        }
+            return false;
 
-        if (!PaperPinController.IsWithinInteractDistance(capi.World.Player, be.Pos))
-        {
-            ReleaseSheet();
-            return;
-        }
+        if (!PaperPinController.IsWithinInteractDistance(capi.World.Player, sel.Position))
+            return false;
 
         var entity = capi.World.Player.Entity;
         Vec3d eye = entity.Pos.XYZ.AddCopy(entity.LocalEyePos);
@@ -157,22 +191,18 @@ public class NoticeBoardPreviewOverlay : HudElement
 
         MessageVisualData data = messageId >= 0 ? be.GetVisualData(messageId) : null;
         if (data == null || string.IsNullOrWhiteSpace(data.Text))
-        {
-            ReleaseSheet();
-            return;
-        }
+            return false;
 
-        DrawSheet(
+        request = new SheetRequest(
             data,
             be.BoardProperties?.BoardFont,
             be.BoardProperties?.BoardTheme,
             be.BoardProperties?.BoardFontSize ?? 0,
             messageId,
             sel.Position,
-            z: 50f,
             be.BoardProperties?.EnableNoticeAging == 1,
-            be.BoardProperties?.NoticeAgingDays ?? GameDateFormatter.DefaultLifeDays(capi.World.Calendar)
-        );
+            be.BoardProperties?.NoticeAgingDays ?? GameDateFormatter.DefaultLifeDays(capi.World.Calendar));
+        return true;
     }
 
     private static void ResolveWear(
@@ -195,57 +225,52 @@ public class NoticeBoardPreviewOverlay : HudElement
         tickStep = (int)(cal.TotalHours / GameDateFormatter.WearTickHours(cal.HoursPerDay, days));
     }
 
-    private void DrawSheet(
-        MessageVisualData data,
-        string boardFont,
-        string boardTheme,
-        float boardFontSize,
-        int messageId,
-        BlockPos worldPos,
-        float z = 50f,
-        bool enableAging = false,
-        int noticeAgingDays = GameDateFormatter.VanillaMonthDays
-    )
+    private void DrawSheet(SheetRequest r, float eased)
     {
         int units = Math.Clamp(
             PaperSize.MeasureHeightUnitsUnclamped(
-                capi, data.Text, boardFont, boardFontSize, hasAuthor: !string.IsNullOrEmpty(data.Author)),
+                capi, r.Data.Text, r.BoardFont, r.BoardFontSize, hasAuthor: !string.IsNullOrEmpty(r.Data.Author)),
             1, PaperSize.PreviewMaxUnits);
         int tilePx = PaperSize.TilePixels(units);
         float scale = Math.Min(
             capi.Render.FrameHeight / (float)tilePx,
             capi.Render.FrameWidth * 0.45f / PaperSize.TextWidth);
-        float w = PaperSize.TextWidth * scale;
-        float h = tilePx * scale;
-        int superSample = GameMath.Clamp((int)Math.Ceiling(w / PaperSize.TextWidth), 1, PaperSize.MaxTextSharpness);
+        float baseW = PaperSize.TextWidth * scale;
+        float grow = GrowFrom + (1f - GrowFrom) * eased;
+        float w = baseW * grow;
+        float h = tilePx * scale * grow;
+        int superSample = GameMath.Clamp((int)Math.Ceiling(baseW / PaperSize.TextWidth), 1, PaperSize.MaxTextSharpness);
 
-        ResolveWear(capi, enableAging, noticeAgingDays, data, out double age01, out int wearBuckets, out int tickStep);
-        string stamp = $"{data.Text}\u0000{data.Author}\u0000{data.Date}\u0000{data.PaperTheme}\u0000{boardTheme}\u0000{boardFont}\u0000{boardFontSize}\u0000{enableAging}\u0000{noticeAgingDays}\u0000{tickStep}";
-        bool posChanged = worldPos != null && (cachedPos == null || !cachedPos.Equals(worldPos));
+        ResolveWear(capi, r.EnableAging, r.NoticeAgingDays, r.Data, out double age01, out int wearBuckets, out int tickStep);
+        string stamp = $"{r.Data.Text}\u0000{r.Data.Author}\u0000{r.Data.Date}\u0000{r.Data.PaperTheme}\u0000{r.BoardTheme}\u0000{r.BoardFont}\u0000{r.BoardFontSize}\u0000{r.EnableAging}\u0000{r.NoticeAgingDays}\u0000{tickStep}";
+        bool posChanged = r.WorldPos != null && (cachedPos == null || !cachedPos.Equals(r.WorldPos));
         if (sheetTexture == null
-            || cachedMessageId != messageId
+            || cachedMessageId != r.MessageId
             || posChanged
             || cachedStamp != stamp
             || cachedSuperSample != superSample)
         {
             ReleaseSheet();
             sheetTexture = NoticeBoardPaperTextRenderer.RasterizeSheet(
-                capi, data, units, boardFont, boardTheme,
-                superSample, PaperSize.PreviewMaxUnits, boardFontSize, age01, wearBuckets, data.ResolveParchmentSeed(messageId));
-            cachedPos = worldPos?.Copy();
-            cachedMessageId = messageId;
+                capi, r.Data, units, r.BoardFont, r.BoardTheme,
+                superSample, PaperSize.PreviewMaxUnits, r.BoardFontSize, age01, wearBuckets, r.Data.ResolveParchmentSeed(r.MessageId));
+            cachedPos = r.WorldPos?.Copy();
+            cachedMessageId = r.MessageId;
             cachedStamp = stamp;
             cachedSuperSample = superSample;
         }
 
         EnsureDimTexture();
+        float dim = DimAlpha * eased;
         capi.Render.Render2DTexturePremultipliedAlpha(
-            dimTexture.TextureId, 0, 0, capi.Render.FrameWidth, capi.Render.FrameHeight, z);
+            dimTexture.TextureId, 0, 0, capi.Render.FrameWidth, capi.Render.FrameHeight, 50f,
+            new Vec4f(dim, dim, dim, dim));
         capi.Render.Render2DTexturePremultipliedAlpha(
             sheetTexture.TextureId,
             (capi.Render.FrameWidth - w) * 0.5f,
             (capi.Render.FrameHeight - h) * 0.5f,
-            w, h, z);
+            w, h, 50f,
+            new Vec4f(eased, eased, eased, eased));
     }
 
     // IsHotKeyPressed reads the live held state of the player's own binding, modifiers and
@@ -265,7 +290,7 @@ public class NoticeBoardPreviewOverlay : HudElement
         using ImageSurface surface = new ImageSurface(Format.Argb32, 2, 2);
         using (Context ctx = new Context(surface))
         {
-            ctx.SetSourceRGBA(0, 0, 0, 0.55);
+            ctx.SetSourceRGBA(0, 0, 0, 1);
             ctx.Paint();
         }
         capi.Gui.LoadOrUpdateCairoTexture(surface, true, ref dimTexture);
@@ -283,8 +308,43 @@ public class NoticeBoardPreviewOverlay : HudElement
     public override void Dispose()
     {
         HidePinned();
+        transition = 0f;
+        current = null;
+        ReleaseSheet();
         dimTexture?.Dispose();
         dimTexture = null;
         base.Dispose();
+    }
+
+    private readonly struct SheetRequest
+    {
+        public SheetRequest(
+            MessageVisualData data,
+            string boardFont,
+            string boardTheme,
+            float boardFontSize,
+            int messageId,
+            BlockPos worldPos,
+            bool enableAging,
+            int noticeAgingDays)
+        {
+            Data = data;
+            BoardFont = boardFont;
+            BoardTheme = boardTheme;
+            BoardFontSize = boardFontSize;
+            MessageId = messageId;
+            WorldPos = worldPos;
+            EnableAging = enableAging;
+            NoticeAgingDays = noticeAgingDays;
+        }
+
+        public MessageVisualData Data { get; }
+        public string BoardFont { get; }
+        public string BoardTheme { get; }
+        public float BoardFontSize { get; }
+        public int MessageId { get; }
+        public BlockPos WorldPos { get; }
+        public bool EnableAging { get; }
+        public int NoticeAgingDays { get; }
     }
 }

@@ -23,22 +23,53 @@ public readonly struct ItemMeshInfo
 // (gold/silver ingots often land on a later sheet).
 public static class ItemMeshCache
 {
-    private static readonly Dictionary<string, ItemMeshInfo?> cache = new();
+    private readonly struct Entry
+    {
+        public Entry(ItemMeshInfo? info, int reloadIteration)
+        {
+            Info = info;
+            ReloadIteration = reloadIteration;
+        }
+
+        public ItemMeshInfo? Info { get; }
+        public int ReloadIteration { get; }
+    }
+
+    private static readonly Dictionary<string, Entry> cache = new();
 
     public static bool TryGet(ICoreClientAPI api, string code, bool isBlock, out ItemMeshInfo info)
     {
         string key = (isBlock ? "block:" : "item:") + code;
+        int reloadIteration = CurrentReloadIteration(api, code, isBlock);
 
-        if (cache.TryGetValue(key, out ItemMeshInfo? cached))
+        if (cache.TryGetValue(key, out Entry cached) && cached.ReloadIteration == reloadIteration)
         {
-            info = cached ?? default;
-            return cached.HasValue;
+            info = cached.Info ?? default;
+            return cached.Info.HasValue;
         }
 
         ItemMeshInfo? built = Build(api, code, isBlock);
-        cache[key] = built;
+        cache[key] = new Entry(built, reloadIteration);
         info = built ?? default;
         return built.HasValue;
+    }
+
+    private static int CurrentReloadIteration(ICoreClientAPI api, string code, bool isBlock)
+    {
+        var location = new AssetLocation(code);
+        TextureAtlasPosition position;
+        if (isBlock)
+        {
+            Block block = api.World.GetBlock(location);
+            position = block == null ? null : api.BlockTextureAtlas.GetPosition(block, null, false);
+        }
+        else
+        {
+            Item item = api.World.GetItem(location);
+            position = item == null ? null : api.ItemTextureAtlas.GetPosition(item, null, false);
+        }
+
+        return position?.reloadIteration ?? -1;
     }
 
     private static ItemMeshInfo? Build(ICoreClientAPI api, string code, bool isBlock)

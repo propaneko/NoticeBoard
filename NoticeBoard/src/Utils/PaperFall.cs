@@ -25,6 +25,7 @@ public static class PaperFall
         int z = (int)Math.Floor(start.Z);
         int y0 = (int)Math.Floor(start.Y);
         int yMin = Math.Max(0, y0 - GameDateFormatter.FallSearchBlocks);
+        int lastVisibleY = yMin;
         var p = new BlockPos(x, y0, z, dimension);
         for (int y = y0; y >= yMin; y--)
         {
@@ -36,7 +37,13 @@ public static class PaperFall
                 continue;
             Cuboidf[] boxes = block.GetCollisionBoxes(ba, p);
             if (boxes == null || boxes.Length == 0)
+            {
+                if (block.IsLiquid())
+                    return y + 1;
+
+                lastVisibleY = y;
                 continue;
+            }
             float top = 0f;
             for (int i = 0; i < boxes.Length; i++)
             {
@@ -45,7 +52,7 @@ public static class PaperFall
             }
             return y + top;
         }
-        return yMin;
+        return lastVisibleY;
     }
 
     public static int DurationMs(double startY, double floorY)

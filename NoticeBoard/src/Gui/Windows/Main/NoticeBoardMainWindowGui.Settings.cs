@@ -76,7 +76,7 @@ public partial class NoticeBoardMainWindowGui
         string swayStrengthLabelText =
             $"{Lang.Get("noticeboard:settings-board-sway-strength")} {NoticeBoard.Rendering.PaperSize.MaxSwayStrength}";
         string proximityDistanceLabelText =
-            $"{Lang.Get("noticeboard:settings-board-proximity-distance")} 1000";
+            $"{Lang.Get("noticeboard:settings-board-proximity-distance")} {Proximity.MaxDistance}";
 
         double labelWidth = MeasureLabelWidth(
             normalFont,
@@ -419,7 +419,13 @@ public partial class NoticeBoardMainWindowGui
             rightControl,
             "fontSizeSlider"
         );
-        composer.GetSlider("fontSizeSlider").SetValues((int)this.pendingFontSize, 10, 60, 1);
+        composer.GetSlider("fontSizeSlider")
+            .SetValues(
+                (int)this.pendingFontSize,
+                (int)NoticeBoard.Rendering.PaperSize.MinBoardFontSize,
+                (int)NoticeBoard.Rendering.PaperSize.MaxBoardFontSize,
+                1
+            );
 
         rightLabel = rightLabel.BelowCopy(0, rowGap);
         rightControl = rightControl.BelowCopy(0, rowGap);
@@ -718,7 +724,9 @@ public partial class NoticeBoardMainWindowGui
                 rightControl,
                 "distanceSlider"
             );
-            composer.GetSlider("distanceSlider").SetValues(this.pendingDistance, 1, 1000, 1);
+            composer
+                .GetSlider("distanceSlider")
+                .SetValues(this.pendingDistance, Proximity.MinDistance, Proximity.MaxDistance, 1);
         }
 
         // The two columns end at different heights, and which one is taller depends on whether
@@ -779,7 +787,7 @@ public partial class NoticeBoardMainWindowGui
             (this.permissionMode != p.PermissionMode)
             || (this.enableParticles != (p.EnableParticles != 0))
             || (this.enableNoticeAging != (p.EnableNoticeAging != 0))
-            || (this.pendingNoticeAgingDays != GameDateFormatter.ClampLifeDays(p.NoticeAgingDays))
+            || (this.pendingNoticeAgingDays != p.NoticeAgingDays)
             || (this.enableParchment != (p.EnableParchment != 0))
             || (this.enableManualPin != (p.EnableManualPin != 0))
             || (this.enableDiscord != (p.EnableDiscord != 0))
@@ -791,9 +799,9 @@ public partial class NoticeBoardMainWindowGui
             || (this.boardName != p.BoardName)
             || (this.boardFont != p.BoardFont)
             || (this.pendingFontSize != p.BoardFontSize)
-            || (this.pendingMaxPapers != NoticeBoard.Rendering.NoticeBoardPaperLayout.ClampMax(p.MaxPapersOnBoard))
-            || (this.pendingTextSharpness != NoticeBoard.Rendering.PaperSize.ResolveSharpness(p.TextSharpness))
-            || (this.pendingSwayStrength != NoticeBoard.Rendering.PaperSize.ClampSwayStrength(p.SwayStrength))
+            || (this.pendingMaxPapers != p.MaxPapersOnBoard)
+            || (this.pendingTextSharpness != p.TextSharpness)
+            || (this.pendingSwayStrength != p.SwayStrength)
             || (this.boardTheme != p.BoardTheme)
             || (this.pendingDistance != p.ProximityDistance)
             || (!string.IsNullOrEmpty(this.pendingOwnerUid) && this.pendingOwnerUid != p.PlayerId);
@@ -841,7 +849,7 @@ public partial class NoticeBoardMainWindowGui
             );
             p.EnableNoticeAging = this.enableNoticeAging ? 1 : 0;
         }
-        if (this.pendingNoticeAgingDays != GameDateFormatter.ClampLifeDays(p.NoticeAgingDays))
+        if (this.pendingNoticeAgingDays != p.NoticeAgingDays)
         {
             int days = GameDateFormatter.ClampLifeDays(this.pendingNoticeAgingDays);
             channel.SendPacket(
@@ -948,7 +956,7 @@ public partial class NoticeBoardMainWindowGui
             p.BoardFontSize = this.pendingFontSize;
             this.boardFontSize = this.pendingFontSize;
         }
-        if (this.pendingMaxPapers != NoticeBoard.Rendering.NoticeBoardPaperLayout.ClampMax(p.MaxPapersOnBoard))
+        if (this.pendingMaxPapers != p.MaxPapersOnBoard)
         {
             int maxPapers = NoticeBoard.Rendering.NoticeBoardPaperLayout.ClampMax(
                 this.pendingMaxPapers
@@ -962,7 +970,7 @@ public partial class NoticeBoardMainWindowGui
             );
             p.MaxPapersOnBoard = maxPapers;
         }
-        if (this.pendingTextSharpness != NoticeBoard.Rendering.PaperSize.ResolveSharpness(p.TextSharpness))
+        if (this.pendingTextSharpness != p.TextSharpness)
         {
             int textSharpness = NoticeBoard.Rendering.PaperSize.ClampSharpness(
                 this.pendingTextSharpness
@@ -976,7 +984,7 @@ public partial class NoticeBoardMainWindowGui
             );
             p.TextSharpness = textSharpness;
         }
-        if (this.pendingSwayStrength != NoticeBoard.Rendering.PaperSize.ClampSwayStrength(p.SwayStrength))
+        if (this.pendingSwayStrength != p.SwayStrength)
         {
             int swayStrength = NoticeBoard.Rendering.PaperSize.ClampSwayStrength(
                 this.pendingSwayStrength

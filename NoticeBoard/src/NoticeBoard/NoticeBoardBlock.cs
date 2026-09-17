@@ -6,6 +6,7 @@ using NoticeBoard.Configs;
 using NoticeBoard.Extensions;
 using NoticeBoard.Packets;
 using NoticeBoard.Rendering;
+using NoticeBoard.Utils;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
@@ -371,7 +372,7 @@ public class NoticeBoardBlock : Block, IClaimTraverseable, IMultiBlockColSelBoxe
             return PaperPinController.Instance.TryConfirm(world, byPlayer, blockSel);
 
         NoticeBoardBlockEntity reachBe = world.Api.GetNoticeBoardEntity(blockSel.Position);
-        if (reachBe != null && !PaperPinController.IsWithinInteractDistance(byPlayer, reachBe.Pos))
+        if (reachBe != null && !PaperPinController.IsWithinInteractDistance(byPlayer, blockSel.Position))
             return false;
 
         if (byPlayer.InventoryManager.ActiveHotbarSlot?.Itemstack?.Block is NoticeBoardBlock)
@@ -385,7 +386,11 @@ public class NoticeBoardBlock : Block, IClaimTraverseable, IMultiBlockColSelBoxe
             if (string.IsNullOrEmpty(blockEntity.uniqueID))
                 return false;
 
-            if (byPlayer.Entity.Controls.CtrlKey && TryLanternInteract(world, byPlayer, blockEntity))
+            if (
+                byPlayer.Entity.Controls.CtrlKey
+                && ClaimAccess.MayTraverse(world, byPlayer, blockSel.Position)
+                && TryLanternInteract(world, byPlayer, blockEntity)
+            )
                 return true;
 
             if (world.Side == EnumAppSide.Client)
