@@ -37,6 +37,7 @@ namespace NoticeBoard.Events
             )
             {
                 messageBoardGui?.TryClose();
+                messageBoardGui?.Dispose();
                 messageBoardGui = new NoticeBoardMainWindowGui("NoticeBoardGui", packet, capi);
                 messageBoardGui.TryOpen();
             }

@@ -19,8 +19,12 @@ public partial class NoticeBoardMainWindowGui
 {
         public bool OpenTextInput(string mode, int messageId, string currentText, int isAnonymous = 0, int holder = 0, string paperTheme = "", bool hasWaypoint = false, float waypointX = 0, float waypointZ = 0, string waypointTitle = "", string waypointIcon = "", string waypointColor = "")
         {
-            if (this.textInputGui != null && this.textInputGui.IsOpened())
+            if (this.textInputGui != null)
+            {
                 this.textInputGui.TryClose();
+                this.textInputGui.Dispose();
+                this.textInputGui = null;
+            }
 
             this.textInputGui = new NoticeBoardTextInputWindowGui(
                 this.capi,
@@ -59,12 +63,13 @@ public partial class NoticeBoardMainWindowGui
 
         ItemSlot validSlot = null;
 
-        foreach (ItemSlot slot in blockEntity.Inventory)
+        for (int i = 0; i < 4; i++)
         {
-            if (!slot.Empty && (slot.Itemstack.Collectible.Code.Path.StartsWith("paper-parchment") || slot.Itemstack.Collectible.Code.Path == "papyrus-paper"))
+            ItemSlot slot = blockEntity.Inventory[i];
+            if (!slot.Empty && NoticeBoard.Utils.NoticeParchment.IsCostPaper(slot.Itemstack))
             {
                 validSlot = slot;
-                break; 
+                break;
             }
         }
 
@@ -158,6 +163,13 @@ public partial class NoticeBoardMainWindowGui
     {
         capi.Network.GetChannel("noticeboard").SendPacket(new PlayerBumpMessage { MessageId = id, BoardId = this.boardId });
         this.GetMessages();
+        return true;
+    }
+
+    private bool CopyToScribe(int id)
+    {
+        capi.Network.GetChannel("noticeboard")
+            .SendPacket(new PlayerCopyToScribe { MessageId = id, BoardId = this.boardId });
         return true;
     }
 
@@ -469,7 +481,7 @@ public partial class NoticeBoardMainWindowGui
                 scrollArea.Add(new GuiElementRichtext(this.capi, dateVtml, dateBounds), -1);
                 scrollArea.Add(new GuiElementRichtext(this.capi, bodyVtml, bodyBounds), -1);
 
-                bool isSender = (message.PlayerId == capi.World.Player.PlayerUID);
+                bool isSender = message.IsMine;
                 bool canEdit = isOwner
                     || this.permissionMode == (int)BoardPermissionMode.All
                     || (this.permissionMode == (int)BoardPermissionMode.Default && isSender);
@@ -520,12 +532,33 @@ public partial class NoticeBoardMainWindowGui
                     }
                 }
 
+                int editCount = 0;
+                if (canEdit)
+                    editCount = (this.enableManualPin && !this.enableLegacyBoard) ? 4 : 3;
+                int extra = 0;
+                if (ScribeBridge.IsLoaded(this.capi))
+                {
+                    double scribeX = buttonBaseX - (editCount + extra) * buttonSpacing;
+                    extra++;
+                    ElementBounds scribeBounds = containerRowBounds
+                        .RightCopy(0.0, 0.0, 0.0, 0.0)
+                        .WithFixedPosition(scribeX, buttonY)
+                        .WithFixedHeight(buttonSize)
+                        .WithFixedWidth(buttonSize);
+                    scrollArea.Add(
+                        new GuiElementInkButton(
+                            this.capi,
+                            "scribe",
+                            () => this.CopyToScribe(id),
+                            scribeBounds,
+                            theme
+                        ),
+                        -1
+                    );
+                }
                 if (message.HasWaypoint)
                 {
-                    int editCount = 0;
-                    if (canEdit)
-                        editCount = (this.enableManualPin && !this.enableLegacyBoard) ? 4 : 3;
-                    double mapX = buttonBaseX - editCount * buttonSpacing;
+                    double mapX = buttonBaseX - (editCount + extra) * buttonSpacing;
                     float wpX = message.WaypointX;
                     float wpZ = message.WaypointZ;
                     ElementBounds mapButtonBounds = containerRowBounds

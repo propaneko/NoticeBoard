@@ -18,6 +18,8 @@
   "messages-error-no-item-written": "Покладіть підписаний пергамент у слот!",
   "messages-error-no-text": "Цей пергамент порожній!",
   "messages-error-empty-notice": "Напишіть щось перед публікацією!",
+  "scribe-extra-info": "З дошки {0} · {1} · {2}",
+  "scribe-api-missing": "Ця версія Scribe не вміє приймати оголошення. Оновіть Scribe.",
 
   "settings-section-board": "Дошка",
   "settings-section-appearance": "Вигляд",

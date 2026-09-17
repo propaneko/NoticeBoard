@@ -49,6 +49,16 @@ namespace NoticeBoard.Packets
     }
 
     [ProtoContract]
+    public class PlayerCopyToScribe
+    {
+        [ProtoMember(1)]
+        public int MessageId { get; set; }
+
+        [ProtoMember(2)]
+        public string BoardId { get; set; }
+    }
+
+    [ProtoContract]
     public class PlayerSendMessage
     {
         [ProtoMember(1)]
@@ -498,6 +508,9 @@ namespace NoticeBoard.Packets
 
         [ProtoMember(17)]
         public string WaypointColor { get; set; }
+
+        [ProtoMember(18)]
+        public bool IsMine { get; set; }
     }
 
     [ProtoContract]
@@ -571,6 +584,9 @@ namespace NoticeBoard.Packets
 
         [ProtoMember(23)]
         public int HasDiscordWebhook { get; set; }
+
+        [ProtoMember(24)]
+        public double EnableAgingAtHours { get; set; }
     }
 
     [ProtoContract]

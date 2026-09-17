@@ -49,6 +49,17 @@ public static class DiscordNoticeBridge
             && parts[3].Length > 0;
     }
 
+    private const int MaxNameChars = 64;
+
+    private static string Flatten(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return value ?? "";
+
+        string flat = value.Replace('\r', ' ').Replace('\n', ' ').Replace("`", "").Replace("**", "");
+        return flat.Length > MaxNameChars ? flat.Substring(0, MaxNameChars) : flat;
+    }
+
     public static void TryNotify(
         ICoreServerAPI sapi,
         SQLiteHandler db,
@@ -67,8 +78,8 @@ public static class DiscordNoticeBridge
             return;
         }
 
-        string name = displayNameOrNull ?? Lang.Get("noticeboard:discord-someone");
-        string boardName = string.IsNullOrEmpty(board.BoardName) ? "Notice Board" : board.BoardName;
+        string name = Flatten(displayNameOrNull ?? Lang.Get("noticeboard:discord-someone"));
+        string boardName = Flatten(string.IsNullOrEmpty(board.BoardName) ? "Notice Board" : board.BoardName);
         var cal = sapi.World.Calendar;
         if (cal == null)
             return;

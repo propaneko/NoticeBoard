@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using NoticeBoard.Database;
 using NoticeBoard.Packets;
 using NoticeBoard.Rendering;
 using Vintagestory.API.Common;
@@ -12,6 +13,18 @@ namespace NoticeBoard.Utils;
 public static class NoticeParchment
 {
     public const int BookTitleMax = 80; // ModSystemEditableBook.MaxTitleLength
+
+    public static bool IsCostPaper(ItemStack stack)
+    {
+        string path = stack?.Collectible?.Code?.Path;
+        if (path == null)
+            return false;
+
+        return path == "paper-parchment"
+            || path.StartsWith("paper-parchment-")
+            || path == "papyrus-paper"
+            || path.StartsWith("papyrus-paper-");
+    }
 
     public static ItemStack FromNotice(
         IWorldAccessor world,
@@ -90,6 +103,10 @@ public static class NoticeParchment
         if (sapi == null || pos == null || expired == null || expired.Count == 0)
             return;
 
+        SQLiteHandler db = new SQLiteHandler();
+
+        bool parchmentEnabled = db.GetBoardData(boardId)?.EnableParchment != 0;
+
         var cal = sapi.World.Calendar;
         var stacks = new List<ItemStack>(expired.Count);
         var falls = new List<ExpiredNoticeFall>(expired.Count);
@@ -97,9 +114,11 @@ public static class NoticeParchment
         {
             string date = GameDateFormatter.FormatImmersiveDate(
                 cal.HoursPerDay, cal.DaysPerMonth, row.TotalHours, includeTime: false);
-            ItemStack stack = FromNotice(
-                sapi.World, row.Text, row.PlayerName, row.IsAnonymous,
-                row.Holder, row.PaperTheme, row.PlayerId, date);
+            ItemStack stack = parchmentEnabled
+                ? FromNotice(
+                    sapi.World, row.Text, row.PlayerName, row.IsAnonymous,
+                    row.Holder, row.PaperTheme, row.PlayerId, date)
+                : null;
             stacks.Add(stack);
 
             falls.Add(
@@ -149,8 +168,12 @@ public static class NoticeParchment
             0.1f + (float)sapi.World.Rand.NextDouble() * 0.2f
         );
 
-        // Delayed spawn uses IEventAPI.RegisterCallback with PaperFall.DurationMs.
-        // If the server stops before land, those stacks never appear.
+        if (!parchmentEnabled)
+        {
+            db.DeleteMessages(boardId, expired.ConvertAll(r => r.Id));
+            return;
+        }
+
         bool isWall = sapi.World.BlockAccessor.GetBlock(pos)?.Variant?["attachment"] == "wall";
         float sheetZ = NoticeBoardPaperLayout.SheetZ(isWall);
         for (int i = 0; i < expired.Count; i++)
@@ -171,6 +194,7 @@ public static class NoticeParchment
             float capY = tackY;
             float capZ = tackZ;
             double capFloor = floorY;
+            int capId = row.Id;
             sapi.Event.RegisterCallback(
                 _ =>
                 {
@@ -182,6 +206,7 @@ public static class NoticeParchment
                         rotateYDeg);
                     land.Y = capFloor + 0.05;
                     sapi.World.SpawnItemEntity(captured, land, new Vec3d(0, 0, 0));
+                    db.DeleteMessages(boardId, new List<int> { capId });
                 },
                 delayMs);
         }

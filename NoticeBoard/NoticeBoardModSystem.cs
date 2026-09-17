@@ -57,6 +57,7 @@ namespace NoticeBoard
                 .RegisterMessageType<PlayerEditMessage>()
                 .RegisterMessageType<PlayerRepositionMessage>()
                 .RegisterMessageType<PlayerBumpMessage>()
+                .RegisterMessageType<PlayerCopyToScribe>()
                 .RegisterMessageType<EditPermissionMode>()
                 .RegisterMessageType<EditEnableParticles>()
                 .RegisterMessageType<EditEnableNoticeAging>()
@@ -177,6 +178,8 @@ namespace NoticeBoard
                 api.Logger.Notification("[NoticeBoard] SelfCheckWebhookUrl passed.");
                 TheBasicsNick.SelfCheckNametagStrip();
                 api.Logger.Notification("[NoticeBoard] SelfCheckNametagStrip passed.");
+                ScribeBridge.SelfCheckPlainText();
+                api.Logger.Notification("[NoticeBoard] SelfCheckPlainText passed.");
             }
             catch (Exception ex)
             {

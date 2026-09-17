@@ -113,7 +113,7 @@ public sealed class PaperPinController : IRenderer
         if (sel == null)
             return false;
         be = world.Api.GetNoticeBoardEntity(sel.Position);
-        return be != null && IsWithinInteractDistance(player, be.Pos);
+        return be != null && IsWithinInteractDistance(player, sel.Position);
     }
 
     private void OnWorldRightClick(MouseEvent e)

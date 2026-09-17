@@ -63,8 +63,13 @@ public static class PaperSize
     public const float MinBoardFontSize = 10f;
     public const float MaxBoardFontSize = 60f;
 
+    public static float ClampBoardFontSize(float size) =>
+        float.IsFinite(size)
+            ? GameMath.Clamp(size, MinBoardFontSize, MaxBoardFontSize)
+            : DefaultBoardFontSize;
+
     public static float ResolveBoardFontSize(float size) =>
-        size <= 0 ? DefaultBoardFontSize : GameMath.Clamp(size, MinBoardFontSize, MaxBoardFontSize);
+        size <= 0 ? DefaultBoardFontSize : ClampBoardFontSize(size);
 
     public static double ResolveBodyFontSize(float boardFontSize) =>
         BodyFontSize * (ResolveBoardFontSize(boardFontSize) / DefaultBoardFontSize);
@@ -81,6 +86,8 @@ public static class PaperSize
     // Performance backstop only, far above any page's real capacity at BodyFontSize: actual
     // truncation happens via the maxLines page-overflow check in the renderer.
     public const int MaxCharsPerMessage = 4000;
+
+    public const int MaxComposeChars = 10000;
 
     // The sheet's local width (8/16 of a block) spans TextWidth pixels, so one 1/16 block step
     // is worth TextWidth / 8 pixels. FullHeightUnits is the unshrunk sheet from the shape JSON

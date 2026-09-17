@@ -28,6 +28,10 @@ public partial class NoticeBoardMainWindowGui : GuiDialog
     private readonly ResponseAllMessages noticeBoardPacket;
 
     private NoticeBoardTextInputWindowGui textInputGui;
+    private bool resourcesReleased;
+
+    public override bool UnregisterOnClose => true;
+
     private string boardName;
     private string boardFont;
     private string boardTheme;
@@ -77,7 +81,7 @@ public partial class NoticeBoardMainWindowGui : GuiDialog
         this.boardPlayerId = packet.BoardProperties.PlayerId;
         this.boardPlayerName = packet.BoardProperties.PlayerName;
         this.boardPos = PositionHelper.FromString(packet.BoardProperties.Pos);
-        this.permissionMode = packet.BoardProperties.PermissionMode;
+        this.permissionMode = BoardPermission.ClampMode(packet.BoardProperties.PermissionMode);
         this.enableParticles = packet.BoardProperties.EnableParticles != 0;
         this.enableNoticeAging = packet.BoardProperties.EnableNoticeAging != 0;
         this.pendingNoticeAgingDays = GameDateFormatter.ClampLifeDays(
@@ -141,6 +145,29 @@ public partial class NoticeBoardMainWindowGui : GuiDialog
         }
 
         capi.Network.SendBlockEntityPacket(this.boardPos, 999, null);
+
+        Dispose();
+    }
+
+    public override void Dispose()
+    {
+        if (resourcesReleased)
+            return;
+
+        resourcesReleased = true;
+        ReleaseTextInput();
+        base.Dispose();
+    }
+
+    private void ReleaseTextInput()
+    {
+        NoticeBoardTextInputWindowGui composer = this.textInputGui;
+        this.textInputGui = null;
+        if (composer == null)
+            return;
+
+        composer.TryClose();
+        composer.Dispose();
     }
 
     private void OnTabClicked(int tabIndex)

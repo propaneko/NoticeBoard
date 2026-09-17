@@ -1,5 +1,6 @@
 using System;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.Server;
@@ -8,6 +9,8 @@ namespace NoticeBoard.Utils;
 
 public static class TheBasicsNick
 {
+    public const int NickMax = 64;
+
     // Reflection so TheBasics stays optional. If they rename RPProximityChatSystem / GetNickname, fall back to BASIC_NICKNAME then the account name.
     public static string Resolve(ICoreAPI api, IPlayer player, string fallback)
     {
@@ -17,21 +20,21 @@ public static class TheBasicsNick
             {
                 string fromApi = TryGetNickname(api, server);
                 if (!string.IsNullOrWhiteSpace(fromApi))
-                    return fromApi.Trim();
+                    return SanitizeNick(fromApi);
             }
 
             string legacy = server.GetModData<string>("BASIC_NICKNAME", null);
             if (!string.IsNullOrWhiteSpace(legacy))
-                return legacy.Trim();
+                return SanitizeNick(legacy);
         }
         else
         {
             string fromTag = FromNametag(player);
             if (!string.IsNullOrWhiteSpace(fromTag))
-                return fromTag;
+                return SanitizeNick(fromTag);
         }
 
-        return fallback;
+        return SanitizeNick(fallback);
     }
 
     public static string StripNametagAccount(string nametagName, string account)
@@ -45,6 +48,16 @@ public static class TheBasicsNick
         if (nametagName.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
             nametagName = nametagName.Substring(0, nametagName.Length - suffix.Length).Trim();
         return string.IsNullOrWhiteSpace(nametagName) ? null : nametagName;
+    }
+
+    private static string SanitizeNick(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return value;
+
+        string flat = value.Replace('\r', ' ').Replace('\n', ' ').Replace('\t', ' ');
+        flat = Regex.Replace(flat, "<[^>]*>", "").Trim();
+        return flat.Length > NickMax ? flat.Substring(0, NickMax) : flat;
     }
 
     private static string FromNametag(IPlayer player)

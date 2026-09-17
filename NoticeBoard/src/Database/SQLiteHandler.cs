@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.Data.Sqlite;
 using NoticeBoard;
+using NoticeBoard.Configs;
 using NoticeBoard.Packets;
 using NoticeBoard.Rendering;
 using NoticeBoard.Utils;
@@ -365,17 +366,19 @@ public class SQLiteHandler
         }
     }
 
-    public void EditEnableNoticeAging(EditEnableNoticeAging packet)
+    public void EditEnableNoticeAging(EditEnableNoticeAging packet, double nowHours)
     {
         SQLiteDatabase.TryOpenConnection();
 
         try
         {
-            string query =
-                "UPDATE noticeBoard SET enableNoticeAging = @enableNoticeAging WHERE boardId = @boardId";
+            string query = packet.EnableNoticeAging
+                ? "UPDATE noticeBoard SET enableNoticeAging = 1, enableAgingAtHours = @nowHours WHERE boardId = @boardId"
+                : "UPDATE noticeBoard SET enableNoticeAging = 0 WHERE boardId = @boardId";
             using var command = new SqliteCommand(query, SQLiteConnection);
             command.Parameters.AddWithValue("@boardId", packet.BoardId);
-            command.Parameters.AddWithValue("@enableNoticeAging", packet.EnableNoticeAging ? 1 : 0);
+            if (packet.EnableNoticeAging)
+                command.Parameters.AddWithValue("@nowHours", nowHours);
             command.ExecuteNonQuery();
         }
         catch (Exception e)
@@ -511,7 +514,7 @@ public class SQLiteHandler
         }
     }
 
-    public void EditBoardOwner(EditBoardOwner packet)
+    public bool EditBoardOwner(EditBoardOwner packet)
     {
         SQLiteDatabase.TryOpenConnection();
 
@@ -522,13 +525,22 @@ public class SQLiteHandler
             using var command = new SqliteCommand(query, SQLiteConnection);
             command.Parameters.AddWithValue("@boardId", packet.BoardId);
             command.Parameters.AddWithValue("@ownerId", packet.NewOwnerUid);
-            command.ExecuteNonQuery();
+            if (command.ExecuteNonQuery() > 0)
+                return true;
+
+            NoticeBoardModSystem
+                .getSAPI()
+                ?.Logger.Error(
+                    $"[NoticeBoard] Could not transfer board {packet.BoardId}: no row with owner {packet.NewOwnerUid}."
+                );
+            return false;
         }
         catch (Exception e)
         {
             NoticeBoardModSystem
                 .getSAPI()
                 .Logger.Error($"[NoticeBoard] Could not update board owner: {e.Message}");
+            return false;
         }
     }
 
@@ -776,7 +788,8 @@ public class SQLiteHandler
                        nb.enableProximity, nb.proximityChannel, nb.proximityDistance, nb.maxPapersOnBoard, nb.enableLegacyBoard,
                        nb.textSharpness, nb.swayStrength, nb.enableManualPin, nb.enableNoticeAging, nb.noticeAgingDays,
                        nb.enableDiscord,
-                       CASE WHEN nb.discordWebhook IS NOT NULL AND TRIM(nb.discordWebhook) != '' THEN 1 ELSE 0 END
+                       CASE WHEN nb.discordWebhook IS NOT NULL AND TRIM(nb.discordWebhook) != '' THEN 1 ELSE 0 END,
+                       nb.enableAgingAtHours
                 FROM noticeBoard nb
                 LEFT JOIN players p ON p.playerId = nb.ownerPlayerId
                 WHERE nb.boardId = @boardId";
@@ -793,17 +806,19 @@ public class SQLiteHandler
                 BoardId = reader.GetString(0),
                 BoardName = reader.GetString(1),
                 BoardFont = reader.GetString(2),
-                BoardFontSize = reader.GetFloat(3),
+                BoardFontSize = PaperSize.ResolveBoardFontSize(reader.GetFloat(3)),
                 BoardTheme = reader.GetString(4),
                 PlayerId = reader.GetString(5),
                 Pos = reader.GetString(6),
-                PermissionMode = reader.GetInt16(7),
+                PermissionMode = BoardPermission.ClampMode(reader.GetInt32(7)),
                 EnableParticles = reader.GetInt16(8),
                 EnableParchment = reader.GetInt16(9),
                 PlayerName = reader.IsDBNull(10) ? "Unknown" : reader.GetString(10),
                 EnableProximity = reader.IsDBNull(11) ? 0 : reader.GetInt16(11),
                 ProximityChannel = reader.IsDBNull(12) ? "Proximity" : reader.GetString(12),
-                ProximityDistance = reader.IsDBNull(13) ? 100 : reader.GetInt16(13),
+                ProximityDistance = reader.IsDBNull(13)
+                    ? Proximity.DefaultDistance
+                    : Proximity.ClampDistance(reader.GetInt32(13)),
                 MaxPapersOnBoard = reader.IsDBNull(14) ? 20 : reader.GetInt32(14),
                 EnableLegacyBoard = reader.IsDBNull(15) ? 0 : reader.GetInt16(15),
                 TextSharpness = reader.IsDBNull(16)
@@ -819,6 +834,7 @@ public class SQLiteHandler
                     : GameDateFormatter.ClampLifeDays(reader.GetInt32(20)),
                 EnableDiscord = reader.IsDBNull(21) ? 0 : reader.GetInt32(21),
                 HasDiscordWebhook = reader.IsDBNull(22) ? 0 : reader.GetInt32(22),
+                EnableAgingAtHours = reader.IsDBNull(23) ? 0 : reader.GetDouble(23),
             };
         }
         catch (Exception e)
@@ -832,7 +848,7 @@ public class SQLiteHandler
     #endregion
 
     #region Messages
-    public void InsertMessage(PlayerSendMessage packet, string playerName)
+    public bool InsertMessage(PlayerSendMessage packet, string playerName)
     {
         SQLiteDatabase.TryOpenConnection();
 
@@ -857,7 +873,7 @@ public class SQLiteHandler
             command.Parameters.AddWithValue("@paperSeed", seed);
             command.Parameters.AddWithValue("@pinX", packet.HasPin ? packet.PinX : DBNull.Value);
             command.Parameters.AddWithValue("@pinY", packet.HasPin ? packet.PinY : DBNull.Value);
-            command.Parameters.AddWithValue("@pinRotZ", packet.HasPin ? packet.PinRotZ : DBNull.Value);
+            command.Parameters.AddWithValue("@pinRotZ", packet.HasPin ? NoticeBoardPaperLayout.ClampTiltDeg(packet.PinRotZ) : DBNull.Value);
             command.Parameters.AddWithValue("@pinLayer", packet.HasPin ? NoticeBoardPaperLayout.ClampPinLayer(packet.PinLayer) : 0);
             command.Parameters.AddWithValue("@waypointX", packet.HasWaypoint ? packet.WaypointX : DBNull.Value);
             command.Parameters.AddWithValue("@waypointZ", packet.HasWaypoint ? packet.WaypointZ : DBNull.Value);
@@ -865,17 +881,18 @@ public class SQLiteHandler
             command.Parameters.AddWithValue("@waypointIcon", packet.HasWaypoint ? WaypointPin.SanitizeIcon(packet.WaypointIcon) : "");
             command.Parameters.AddWithValue("@waypointColor", packet.HasWaypoint ? WaypointPin.SanitizeColor(packet.WaypointColor) : "");
 
-            command.ExecuteNonQuery();
+            return command.ExecuteNonQuery() > 0;
         }
         catch (Exception e)
         {
             NoticeBoardModSystem
                 .getSAPI()
                 .Logger.Error($"[NoticeBoard] Could not insert message: {e.Message}");
+            return false;
         }
     }
 
-    public void InsertMessage(PlayerSendDocument packet)
+    public bool InsertMessage(PlayerSendDocument packet)
     {
         SQLiteDatabase.TryOpenConnection();
 
@@ -898,15 +915,16 @@ public class SQLiteHandler
             command.Parameters.AddWithValue("@paperSeed", seed);
             command.Parameters.AddWithValue("@pinX", packet.HasPin ? packet.PinX : DBNull.Value);
             command.Parameters.AddWithValue("@pinY", packet.HasPin ? packet.PinY : DBNull.Value);
-            command.Parameters.AddWithValue("@pinRotZ", packet.HasPin ? packet.PinRotZ : DBNull.Value);
+            command.Parameters.AddWithValue("@pinRotZ", packet.HasPin ? NoticeBoardPaperLayout.ClampTiltDeg(packet.PinRotZ) : DBNull.Value);
             command.Parameters.AddWithValue("@pinLayer", packet.HasPin ? NoticeBoardPaperLayout.ClampPinLayer(packet.PinLayer) : 0);
-            command.ExecuteNonQuery();
+            return command.ExecuteNonQuery() > 0;
         }
         catch (Exception e)
         {
             NoticeBoardModSystem
                 .getSAPI()
                 .Logger.Error($"[NoticeBoard] Could not insert message: {e.Message}");
+            return false;
         }
     }
 
@@ -970,7 +988,7 @@ public class SQLiteHandler
                 using var command = new SqliteCommand(sql, SQLiteConnection, tx);
                 command.Parameters.AddWithValue("@x", xs[i]);
                 command.Parameters.AddWithValue("@y", ys[i]);
-                command.Parameters.AddWithValue("@r", rots[i]);
+                command.Parameters.AddWithValue("@r", NoticeBoardPaperLayout.ClampTiltDeg(rots[i]));
                 command.Parameters.AddWithValue("@id", ids[i]);
                 command.Parameters.AddWithValue("@boardId", boardId);
                 command.ExecuteNonQuery();
@@ -985,7 +1003,7 @@ public class SQLiteHandler
         }
     }
 
-    public List<ExpiredNoticeRow> TakeExpiredMessages(string boardId, double nowHours, float hoursPerDay, int lifeDays)
+    public List<ExpiredNoticeRow> TakeExpiredMessages(string boardId, double nowHours, float hoursPerDay, int lifeDays, double enabledAtHours = 0)
     {
         SQLiteDatabase.TryOpenConnection();
         var rows = new List<ExpiredNoticeRow>();
@@ -997,12 +1015,15 @@ public class SQLiteHandler
                 @"SELECT m.id, m.message, m.totalHours, m.isAnonymous, COALESCE(NULLIF(p.displayName, ''), p.playerName), m.holder, m.paperTheme, m.pinX, m.pinY, m.pinRotZ, m.pinLayer, m.paperSeed, m.senderPlayerId
                 FROM messages m
                 LEFT JOIN players p ON p.playerId = m.senderPlayerId
-                WHERE m.boardId = @boardId AND m.totalHours <= @cutoff",
+                WHERE m.boardId = @boardId AND m.totalHours <= @cutoff
+                  AND (m.pendingDrop IS NULL OR m.pendingDrop = 0)
+                  AND (@enabledAtHours <= 0 OR m.totalHours >= @enabledAtHours)",
                 SQLiteConnection,
                 tx))
             {
                 command.Parameters.AddWithValue("@boardId", boardId);
                 command.Parameters.AddWithValue("@cutoff", cutoff);
+                command.Parameters.AddWithValue("@enabledAtHours", enabledAtHours);
                 using var reader = command.ExecuteReader();
                 while (reader.Read())
                 {
@@ -1033,14 +1054,14 @@ public class SQLiteHandler
                 var idParams = new List<string>(rows.Count);
                 for (int i = 0; i < rows.Count; i++)
                     idParams.Add($"@id{i}");
-                using var del = new SqliteCommand(
-                    $"DELETE FROM messages WHERE boardId = @boardId AND id IN ({string.Join(",", idParams)})",
+                using var mark = new SqliteCommand(
+                    $"UPDATE messages SET pendingDrop = 1 WHERE boardId = @boardId AND id IN ({string.Join(",", idParams)})",
                     SQLiteConnection,
                     tx);
-                del.Parameters.AddWithValue("@boardId", boardId);
+                mark.Parameters.AddWithValue("@boardId", boardId);
                 for (int i = 0; i < rows.Count; i++)
-                    del.Parameters.AddWithValue(idParams[i], rows[i].Id);
-                del.ExecuteNonQuery();
+                    mark.Parameters.AddWithValue(idParams[i], rows[i].Id);
+                mark.ExecuteNonQuery();
             }
 
             tx.Commit();
@@ -1052,6 +1073,35 @@ public class SQLiteHandler
                 .getSAPI()
                 .Logger.Error($"[NoticeBoard] Could not take expired messages: {e.Message}");
             return new List<ExpiredNoticeRow>();
+        }
+    }
+
+    public bool DeleteMessages(string boardId, IReadOnlyList<int> ids)
+    {
+        if (ids == null || ids.Count == 0)
+            return false;
+
+        SQLiteDatabase.TryOpenConnection();
+
+        try
+        {
+            var idParams = new List<string>(ids.Count);
+            for (int i = 0; i < ids.Count; i++)
+                idParams.Add($"@id{i}");
+            using var command = new SqliteCommand(
+                $"DELETE FROM messages WHERE boardId = @boardId AND id IN ({string.Join(",", idParams)})",
+                SQLiteConnection);
+            command.Parameters.AddWithValue("@boardId", boardId);
+            for (int i = 0; i < ids.Count; i++)
+                command.Parameters.AddWithValue(idParams[i], ids[i]);
+            return command.ExecuteNonQuery() > 0;
+        }
+        catch (Exception e)
+        {
+            NoticeBoardModSystem
+                .getSAPI()
+                .Logger.Error($"[NoticeBoard] Could not delete dropped messages: {e.Message}");
+            return false;
         }
     }
 
@@ -1228,22 +1278,24 @@ public class SQLiteHandler
         }
     }
 
-    public void DeleteMessage(int id)
+    public bool DeleteMessage(int id, string boardId)
     {
         SQLiteDatabase.TryOpenConnection();
 
         try
         {
-            string query = "DELETE FROM messages WHERE id = @id";
+            string query = "DELETE FROM messages WHERE id = @id AND boardId = @boardId";
             using var command = new SqliteCommand(query, SQLiteConnection);
             command.Parameters.AddWithValue("@id", id);
-            command.ExecuteNonQuery();
+            command.Parameters.AddWithValue("@boardId", boardId);
+            return command.ExecuteNonQuery() > 0;
         }
         catch (Exception e)
         {
             NoticeBoardModSystem
                 .getSAPI()
                 .Logger.Error($"[NoticeBoard] Could not delete message: {e.Message}");
+            return false;
         }
     }
 
@@ -1258,7 +1310,7 @@ public class SQLiteHandler
             );
             command.Parameters.AddWithValue("@x", pinX);
             command.Parameters.AddWithValue("@y", pinY);
-            command.Parameters.AddWithValue("@r", pinRotZ);
+            command.Parameters.AddWithValue("@r", NoticeBoardPaperLayout.ClampTiltDeg(pinRotZ));
             command.Parameters.AddWithValue("@layer", NoticeBoardPaperLayout.ClampPinLayer(pinLayer));
             command.Parameters.AddWithValue("@id", id);
             command.Parameters.AddWithValue("@boardId", boardId);
@@ -1270,29 +1322,26 @@ public class SQLiteHandler
         }
     }
 
-    public void EditMessageById(int id, string message, int isAnonymous, int holder, string paperTheme, bool hasWaypoint, float waypointX, float waypointZ, string waypointTitle, string waypointIcon, string waypointColor)
+    public void EditMessageById(int id, string boardId, string message, int isAnonymous, int holder, string paperTheme, bool hasWaypoint, float waypointX, float waypointZ, string waypointTitle, string waypointIcon, string waypointColor)
     {
         SQLiteDatabase.TryOpenConnection();
 
         try
         {
-            string query = hasWaypoint
-                ? "UPDATE messages SET message = @message, updatedAt = CURRENT_TIMESTAMP, isAnonymous = @isAnonymous, holder = @holder, paperTheme = @paperTheme, waypointX = @waypointX, waypointZ = @waypointZ, waypointTitle = @waypointTitle, waypointIcon = @waypointIcon, waypointColor = @waypointColor WHERE id = @id"
-                : "UPDATE messages SET message = @message, updatedAt = CURRENT_TIMESTAMP, isAnonymous = @isAnonymous, holder = @holder, paperTheme = @paperTheme WHERE id = @id";
+            string query =
+                "UPDATE messages SET message = @message, updatedAt = CURRENT_TIMESTAMP, isAnonymous = @isAnonymous, holder = @holder, paperTheme = @paperTheme, waypointX = @waypointX, waypointZ = @waypointZ, waypointTitle = @waypointTitle, waypointIcon = @waypointIcon, waypointColor = @waypointColor WHERE id = @id AND boardId = @boardId";
             using var command = new SqliteCommand(query, SQLiteConnection);
             command.Parameters.AddWithValue("@id", id);
+            command.Parameters.AddWithValue("@boardId", boardId);
             command.Parameters.AddWithValue("@message", message);
             command.Parameters.AddWithValue("@isAnonymous", isAnonymous);
             command.Parameters.AddWithValue("@holder", holder);
             command.Parameters.AddWithValue("@paperTheme", paperTheme ?? "");
-            if (hasWaypoint)
-            {
-                command.Parameters.AddWithValue("@waypointX", waypointX);
-                command.Parameters.AddWithValue("@waypointZ", waypointZ);
-                command.Parameters.AddWithValue("@waypointTitle", waypointTitle ?? "");
-                command.Parameters.AddWithValue("@waypointIcon", waypointIcon ?? "");
-                command.Parameters.AddWithValue("@waypointColor", waypointColor ?? "");
-            }
+            command.Parameters.AddWithValue("@waypointX", hasWaypoint ? waypointX : DBNull.Value);
+            command.Parameters.AddWithValue("@waypointZ", hasWaypoint ? waypointZ : DBNull.Value);
+            command.Parameters.AddWithValue("@waypointTitle", hasWaypoint ? (waypointTitle ?? "") : "");
+            command.Parameters.AddWithValue("@waypointIcon", hasWaypoint ? (waypointIcon ?? "") : "");
+            command.Parameters.AddWithValue("@waypointColor", hasWaypoint ? (waypointColor ?? "") : "");
 
             command.ExecuteNonQuery();
         }
@@ -1304,15 +1353,17 @@ public class SQLiteHandler
         }
     }
 
-    public void BumpMessageById(int id)
+    public void BumpMessageById(int id, string boardId)
     {
         SQLiteDatabase.TryOpenConnection();
 
         try
         {
-            string query = "UPDATE messages SET updatedAt = CURRENT_TIMESTAMP WHERE id = @id";
+            string query =
+                "UPDATE messages SET updatedAt = CURRENT_TIMESTAMP WHERE id = @id AND boardId = @boardId";
             using var command = new SqliteCommand(query, SQLiteConnection);
             command.Parameters.AddWithValue("@id", id);
+            command.Parameters.AddWithValue("@boardId", boardId);
             command.ExecuteNonQuery();
         }
         catch (Exception e)

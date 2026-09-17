@@ -253,8 +253,12 @@ public class NoticeBoardBlockEntity : BlockEntityOpenableContainer
         bool isWall = Block.Variant?["attachment"] == "wall";
         int up = isWall ? 1 : 2;
 
-        SyncOneGlow(Pos.UpCopy(up), false);
-        SyncOneGlow(RightGlowPos(Pos, Block, up), false);
+        bool hasLantern =
+            (inventory != null && inventory.Count > 5 && LanternHolderSlot.IsSmallLantern(inventory[5].Itemstack))
+            || (inventory != null && inventory.Count > 6 && LanternHolderSlot.IsSmallLantern(inventory[6].Itemstack));
+
+        SyncOneGlow(Pos.UpCopy(up), hasLantern);
+        SyncOneGlow(RightGlowPos(Pos, Block, up), hasLantern);
     }
 
     private static BlockPos RightGlowPos(BlockPos origin, Block block, int up)
@@ -298,6 +302,8 @@ public class NoticeBoardBlockEntity : BlockEntityOpenableContainer
     protected virtual void OnInvOpened(IPlayer player)
     {
         inventory.PutLocked = player.WorldData.CurrentGameMode != EnumGameMode.Creative;
+
+        inventory.TakeLocked = !ClaimAccess.MayTraverse(Api.World, player, Pos);
     }
 
     protected virtual void OnInvClosed(IPlayer player)
@@ -324,7 +330,10 @@ public class NoticeBoardBlockEntity : BlockEntityOpenableContainer
     {
         if (Api.World.Side.IsServer())
         {
-            if (Api.GetNoticeBoardEntity(Pos) is not null)
+            if (
+                Api.GetNoticeBoardEntity(Pos) is not null
+                && ClaimAccess.MayTraverse(Api.World, byPlayer, Pos)
+            )
             {
                 byPlayer.InventoryManager.OpenInventory(this.Inventory);
 
@@ -467,7 +476,8 @@ public class NoticeBoardBlockEntity : BlockEntityOpenableContainer
             uniqueID,
             cal.TotalHours,
             cal.HoursPerDay,
-            GameDateFormatter.ClampLifeDays(props.NoticeAgingDays));
+            GameDateFormatter.ClampLifeDays(props.NoticeAgingDays),
+            props.EnableAgingAtHours);
         if (expired == null || expired.Count == 0)
             return;
 
@@ -1187,12 +1197,24 @@ public class NoticeBoardBlockEntity : BlockEntityOpenableContainer
         UnregisterGameTickListener(listener);
         listener = 0;
 
+        ReleaseRenderers();
+
+        base.OnBlockRemoved();
+    }
+
+    public override void OnBlockUnloaded()
+    {
+        ReleaseRenderers();
+
+        base.OnBlockUnloaded();
+    }
+
+    private void ReleaseRenderers()
+    {
         textRenderer?.Dispose();
         textRenderer = null;
         lanternRenderer?.Dispose();
         lanternRenderer = null;
-
-        base.OnBlockRemoved();
     }
 
     public override void FromTreeAttributes(
