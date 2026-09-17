@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using NoticeBoard;
 using NoticeBoard.BlockType;
@@ -29,6 +30,7 @@ namespace NoticeBoard.Events
             channel.SetMessageHandler<PlayerEditMessage>(OnPlayerEditMessage);
             channel.SetMessageHandler<PlayerRepositionMessage>(OnPlayerRepositionMessage);
             channel.SetMessageHandler<PlayerBumpMessage>(OnPlayerBumpMessage);
+            channel.SetMessageHandler<PlayerCopyToScribe>(OnPlayerCopyToScribe);
             channel.SetMessageHandler<PlayerRemoveMessage>(OnPlayerRemoveMessage);
             channel.SetMessageHandler<EditPermissionMode>(OnPlayerEditPermissionMode);
             channel.SetMessageHandler<EditEnableParticles>(OnPlayerEditEnableParticles);
@@ -239,6 +241,23 @@ namespace NoticeBoard.Events
                32.0f,
                0.1f + (float)sapi.World.Rand.NextDouble() * 0.2f
            );
+        }
+
+        private void OnPlayerCopyToScribe(IServerPlayer player, PlayerCopyToScribe packet)
+        {
+            if (packet == null || string.IsNullOrEmpty(packet.BoardId))
+                return;
+
+            NoticeBoardObject noticeBoard = db.GetBoardData(packet.BoardId);
+            if (noticeBoard == null)
+                return;
+
+            Message message = db.GetMessageById(packet.MessageId);
+            if (message == null || !string.Equals(message.BoardId, packet.BoardId, StringComparison.Ordinal))
+                return;
+
+            if (!ScribeBridge.TryAddNotice(sapi, player, noticeBoard, message))
+                sapi.Logger.Debug("[NoticeBoard] Scribe copy skipped for message " + packet.MessageId);
         }
 
         private void OnPlayerEditPermissionMode(IServerPlayer player, EditPermissionMode packet)

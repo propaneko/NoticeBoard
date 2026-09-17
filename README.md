@@ -25,6 +25,7 @@ Vintage Story mod for posting and reading player notices on placeable boards. Ai
 - Reach for the GUI, lanterns, pin ghost, and preview is **6** blocks from the eye
 - Per-board settings: name, owner, permission mode, Manual Pin, Discord ping, Paper Aging, fonts, themes, max papers (1–50), sway, sharpness, particles, legacy baked papers
 - Optional [TheBasics](https://mods.vintagestory.at/thebasics) (not a hard dependency): proximity chat when a notice is posted; hanging sheets, the list, parchment, and Discord use that RP nick when the mod is loaded
+- Optional [Scribe](https://mods.vintagestory.at/scribe) (not a hard dependency): a tablet ink button copies a notice into the reader's Scribe item
 - Optional **small lanterns** on the left and right posts (Ctrl + right-click; up to two; lights the board at night)
 - Locales: `en`, `es-es`, `pl`, `ru`, `uk`
 

@@ -18,6 +18,8 @@
   "messages-error-no-item-written": "Umieść podpisany pergamin w slocie!",
   "messages-error-no-text": "Ten pergamin jest pusty!",
   "messages-error-empty-notice": "Napisz coś przed wysłaniem!",
+  "scribe-extra-info": "Z tablicy {0} · {1} · {2}",
+  "scribe-api-missing": "Ta wersja Scribe nie przyjmuje ogłoszeń. Zaktualizuj Scribe.",
 
   "settings-section-board": "Tablica",
   "settings-section-appearance": "Wygląd",

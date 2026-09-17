@@ -161,6 +161,13 @@ public partial class NoticeBoardMainWindowGui
         return true;
     }
 
+    private bool CopyToScribe(int id)
+    {
+        capi.Network.GetChannel("noticeboard")
+            .SendPacket(new PlayerCopyToScribe { MessageId = id, BoardId = this.boardId });
+        return true;
+    }
+
     private void OnMessageRowHover(int id, bool inside)
     {
         if (inside)
@@ -520,12 +527,33 @@ public partial class NoticeBoardMainWindowGui
                     }
                 }
 
+                int editCount = 0;
+                if (canEdit)
+                    editCount = (this.enableManualPin && !this.enableLegacyBoard) ? 4 : 3;
+                int extra = 0;
+                if (ScribeBridge.IsLoaded(this.capi))
+                {
+                    double scribeX = buttonBaseX - (editCount + extra) * buttonSpacing;
+                    extra++;
+                    ElementBounds scribeBounds = containerRowBounds
+                        .RightCopy(0.0, 0.0, 0.0, 0.0)
+                        .WithFixedPosition(scribeX, buttonY)
+                        .WithFixedHeight(buttonSize)
+                        .WithFixedWidth(buttonSize);
+                    scrollArea.Add(
+                        new GuiElementInkButton(
+                            this.capi,
+                            "scribe",
+                            () => this.CopyToScribe(id),
+                            scribeBounds,
+                            theme
+                        ),
+                        -1
+                    );
+                }
                 if (message.HasWaypoint)
                 {
-                    int editCount = 0;
-                    if (canEdit)
-                        editCount = (this.enableManualPin && !this.enableLegacyBoard) ? 4 : 3;
-                    double mapX = buttonBaseX - editCount * buttonSpacing;
+                    double mapX = buttonBaseX - (editCount + extra) * buttonSpacing;
                     float wpX = message.WaypointX;
                     float wpZ = message.WaypointZ;
                     ElementBounds mapButtonBounds = containerRowBounds

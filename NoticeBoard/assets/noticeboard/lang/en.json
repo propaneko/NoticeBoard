@@ -18,6 +18,8 @@
   "messages-error-no-item-written": "Place a signed parchment in the slot!",
   "messages-error-no-text": "This parchment is blank!",
   "messages-error-empty-notice": "Write something before posting!",
+  "scribe-extra-info": "From {0} · {1} · {2}",
+  "scribe-api-missing": "This Scribe version cannot take notices. Update Scribe.",
 
 
   "settings-section-board": "Board",

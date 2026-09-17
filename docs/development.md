@@ -53,7 +53,7 @@ NoticeBoard/
   src/NoticeBoard       Block, BlockEntity, MessageVisualData
   src/Gui               main window (Messages/Settings partials), composer, themes, ink button, procedural paper row
   src/Rendering         PaperSize, layout, Cairo text, lantern IRenderer, PaperPinController, NoticeBoardPreviewOverlay, sway
-  src/Utils             FontManager, Proximity, TheBasicsNick, DiscordNoticeBridge, WaypointPin, dates, positions
+  src/Utils             FontManager, Proximity, TheBasicsNick, ScribeBridge, DiscordNoticeBridge, WaypointPin, dates, positions
 ```
 
 ## Runtime flow
@@ -148,3 +148,4 @@ Drop new font files there and restart the client.
 | Permission rules | `CanManageBoard` / `CanEditMessage` in `ServerMessageHandler.cs`; mirror UX in `NoticeBoardMainWindowGui.Messages.cs` |
 | Location pin | `WaypointPin.cs`; `messages.waypointTitle` / `waypointIcon` / `waypointColor`; `PlayerSendMessage` 17/18/19, `PlayerEditMessage` 11/12/13, `Message` 15/16/17; composer + map ink button |
 | Discord ping | `DiscordNoticeBridge`; `TheBasicsNick` + `players.displayName`; `noticeBoard.enableDiscord` / `discordWebhook` (URL never on `NoticeBoardObject`); `EditEnableDiscord` / `EditDiscordWebhook`; Settings write-only field; `/nbdiscord` |
+| Scribe copy | `ScribeBridge`; `PlayerCopyToScribe`; `OnPlayerCopyToScribe`; list `"scribe"` button; no `modinfo` dep |

@@ -49,6 +49,16 @@ namespace NoticeBoard.Packets
     }
 
     [ProtoContract]
+    public class PlayerCopyToScribe
+    {
+        [ProtoMember(1)]
+        public int MessageId { get; set; }
+
+        [ProtoMember(2)]
+        public string BoardId { get; set; }
+    }
+
+    [ProtoContract]
     public class PlayerSendMessage
     {
         [ProtoMember(1)]

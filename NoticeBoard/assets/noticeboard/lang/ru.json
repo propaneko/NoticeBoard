@@ -18,6 +18,8 @@
   "messages-error-no-item-written": "Поместите подписанный пергамент в слот!",
   "messages-error-no-text": "Этот пергамент пуст!",
   "messages-error-empty-notice": "Напишите что-нибудь перед отправкой!",
+  "scribe-extra-info": "С доски {0} · {1} · {2}",
+  "scribe-api-missing": "Эта версия Scribe не умеет принимать объявления. Обновите Scribe.",
 
   "settings-section-board": "Доска",
   "settings-section-appearance": "Внешний вид",

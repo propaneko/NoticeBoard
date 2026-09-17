@@ -18,6 +18,8 @@
   "messages-error-no-item-written": "¡Coloca un pergamino firmado en la ranura!",
   "messages-error-no-text": "¡Este pergamino está en blanco!",
   "messages-error-empty-notice": "¡Escribe algo antes de publicar!",
+  "scribe-extra-info": "De {0} · {1} · {2}",
+  "scribe-api-missing": "Esta versión de Scribe no puede guardar avisos. Actualiza Scribe.",
 
   "settings-section-board": "Tablón",
   "settings-section-appearance": "Apariencia",
