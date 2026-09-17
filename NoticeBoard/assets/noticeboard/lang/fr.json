@@ -18,6 +18,8 @@
   "messages-error-no-item-written": "Placez un parchemin signé dans l'emplacement !",
   "messages-error-no-text": "Ce parchemin est vide !",
   "messages-error-empty-notice": "Écrivez quelque chose avant de publier !",
+  "scribe-extra-info": "De {0} · {1} · {2}",
+  "scribe-api-missing": "Cette version de Scribe ne permet pas d'écrire des annonces. Mettez Scribe à jour.",
 
   "settings-section-board": "Tableau",
   "settings-section-appearance": "Apparence",
